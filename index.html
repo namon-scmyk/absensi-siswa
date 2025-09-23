@@ -817,11 +817,11 @@
                     if (attendanceCtx && typeof Chart !== 'undefined') {
                         this.state.charts.attendance = new Chart(attendanceCtx, {
                             type: 'line',
-                            data: {
+                            data: { ✅
                                 labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'],
                                 datasets: [{
                                     label: 'Kehadiran (%)',
-                                    data: [0, 0, 0, 0, 0],
+                                    data: [0, 0, 0, 0, 0], ✅
                                     borderColor: this.config.chartColors.primary,
                                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                     tension: 0.4,
@@ -1052,3 +1052,4 @@ X-1, X-2, X-3, X-4, X-5, X-6, X-7, X-8, X-9, X-10, X-11`, student.class);
     </script>
 </body>
 </html>
+
