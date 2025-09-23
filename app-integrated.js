@@ -157,7 +157,89 @@ function updateJournalDisplay(journals) {
     </div>
   `).join('');
 }
+// === TEACHER PROFILE FUNCTIONS ===
 
+async function loadTeacherProfile() {
+  try {
+    console.log('Loading teacher profile...');
+    
+    const teacher = await supabaseService.getTeacherProfile();
+    
+    if (teacher) {
+      // Update state lokal
+      window.appState = window.appState || {};
+      window.appState.teacherProfile = {
+        name: teacher.name || 'Guru',
+        subject: teacher.subject || 'Mata Pelajaran',
+        nip: teacher.nip || '',
+        email: teacher.email || '',
+        phone: teacher.phone || '',
+        photo: teacher.photo_url || null
+      };
+      
+      // Update UI
+      updateTeacherProfileDisplay(teacher);
+      console.log('Teacher profile loaded:', teacher.name);
+    }
+    
+  } catch (error) {
+    console.error('Error loading teacher profile:', error);
+  }
+}
+
+async function saveTeacherProfile(profileData) {
+  try {
+    console.log('Saving teacher profile:', profileData);
+    
+    if (!profileData.name || !profileData.subject) {
+      alert('Mohon lengkapi nama dan mata pelajaran');
+      return;
+    }
+
+    const saved = await supabaseService.saveTeacherProfile(profileData);
+    console.log('Teacher profile saved:', saved);
+    
+    // Update UI
+    updateTeacherProfileDisplay(saved);
+    alert('Profil guru berhasil disimpan!');
+    
+  } catch (error) {
+    console.error('Error saving teacher profile:', error);
+    alert('Error: ' + error.message);
+  }
+}
+
+function updateTeacherProfileDisplay(teacher) {
+  // Update nama guru di sidebar
+  const teacherName = document.getElementById('teacherName');
+  const teacherSubject = document.getElementById('teacherSubject');
+  const teacherNIP = document.getElementById('teacherNIP');
+  const teacherEmail = document.getElementById('teacherEmail');
+  const teacherPhone = document.getElementById('teacherPhone');
+  const teacherPhoto = document.getElementById('teacherPhoto');
+  const teacherIcon = document.getElementById('teacherIcon');
+
+  if (teacherName) teacherName.textContent = teacher.name || 'Guru';
+  if (teacherSubject) teacherSubject.textContent = teacher.subject || 'Mata Pelajaran';
+  if (teacherNIP) teacherNIP.textContent = teacher.nip || '-';
+  if (teacherEmail) teacherEmail.textContent = teacher.email || '-';
+  if (teacherPhone) teacherPhone.textContent = teacher.phone || '-';
+  
+  // Update foto jika ada
+  if (teacher.photo && teacherPhoto) {
+    teacherPhoto.src = teacher.photo;
+    teacherPhoto.classList.remove('hidden');
+    if (teacherIcon) teacherIcon.classList.add('hidden');
+  } else if (teacherIcon) {
+    teacherIcon.classList.remove('hidden');
+    if (teacherPhoto) teacherPhoto.classList.add('hidden');
+  }
+}
+
+// === TEACHER PROFILE EXPORT ===
+window.loadTeacherProfile = loadTeacherProfile;
+window.saveTeacherProfile = saveTeacherProfile;
+window.updateTeacherProfileDisplay = updateTeacherProfileDisplay;
 // === CORE FUNCTIONS - FASE 1 ===
 
 async function loadAllData() {
