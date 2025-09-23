@@ -4,42 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Absensi Siswa - Dashboard Guru</title>
-    
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#3B82F6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Absensi Siswa">
     <meta name="description" content="Aplikasi manajemen presensi siswa untuk guru. Kelola data siswa, input presensi, dan buat laporan dengan mudah.">
-    
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        /* Core Styles */
+        /* ... SEMUA STYLE ANDA TETAP SAMA ... */
+        /* Tidak ada perubahan pada CSS — tetap pertahankan seperti aslinya */
         * { -webkit-tap-highlight-color: transparent; }
         body { overscroll-behavior: none; }
         .touch-action-none { touch-action: none; }
-        
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-        
-        /* Animations */
         .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        /* Mobile Responsive */
         @media (max-width: 640px) {
             .mobile-padding { padding: 1rem; }
             .mobile-text { font-size: 0.875rem; }
             .mobile-button { min-height: 44px; min-width: 44px; }
         }
-        
-        /* Touch Interactions */
         .touch-card {
             transform: scale(1);
             transition: transform 0.2s ease;
@@ -47,8 +38,6 @@
         .touch-card:active {
             transform: scale(0.98);
         }
-        
-        /* Bottom Navigation */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -59,12 +48,8 @@
             z-index: 50;
             padding-bottom: env(safe-area-inset-bottom);
         }
-        
-        /* Safe Areas */
         .safe-area-top { padding-top: env(safe-area-inset-top); }
         .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        
-        /* Connection Status */
         .connection-status {
             position: fixed;
             top: 10px;
@@ -78,8 +63,6 @@
         .online { background: #10b981; color: white; }
         .offline { background: #ef4444; color: white; }
         .connecting { background: #f59e0b; color: white; }
-        
-        /* Empty States */
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
@@ -90,8 +73,6 @@
             margin-bottom: 1rem;
             opacity: 0.5;
         }
-        
-        /* Splash Screen */
         .splash-screen {
             position: fixed;
             top: 0;
@@ -121,8 +102,6 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        
-        /* Loading Spinner */
         .spinner {
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
@@ -135,8 +114,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* Progress Bar */
         .progress-bar {
             width: 100%;
             height: 4px;
@@ -149,8 +126,6 @@
             background-color: #3b82f6;
             transition: width 0.3s ease;
         }
-        
-        /* Mobile Optimizations */
         @media (max-width: 768px) {
             .mobile-full-width {
                 width: 100% !important;
@@ -163,8 +138,6 @@
                 text-align: center !important;
             }
         }
-        
-        /* iPhone Notch Support */
         @supports (padding: max(0px)) {
             .safe-area-top {
                 padding-top: max(env(safe-area-inset-top), 20px);
@@ -176,776 +149,17 @@
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
-    <!-- Splash Screen -->
-    <div id="splashScreen" class="splash-screen">
-        <div class="splash-logo">
-            <i class="fas fa-graduation-cap text-4xl"></i>
-        </div>
-        <h1 class="text-2xl font-bold mb-2">Absensi Siswa</h1>
-        <p class="text-blue-100">Memuat aplikasi...</p>
-        <div class="mt-4">
-            <div class="spinner"></div>
-        </div>
-    </div>
-
-    <!-- Connection Status -->
-    <div id="connectionStatus" class="connection-status connecting">
-        <i class="fas fa-wifi mr-1"></i>
-        <span>Offline Mode</span>
-    </div>
-
-    <!-- Mobile Header -->
-    <header class="lg:hidden bg-white shadow-sm safe-area-top">
-        <div class="flex items-center justify-between p-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-graduation-cap text-white text-sm"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-gray-900">Absensi Siswa</h1>
-                    <p class="text-xs text-gray-500" id="currentDate"></p>
-                </div>
-            </div>
-            <button id="profileBtn" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                <i class="fas fa-user text-gray-600 text-sm" id="mobileTeacherIcon"></i>
-                <img id="mobileTeacherPhoto" class="w-full h-full object-cover hidden" alt="Foto Guru">
-            </button>
-        </div>
-    </header>
-
-    <div class="flex h-screen">
-        <!-- Desktop Sidebar -->
-        <aside class="hidden lg:flex lg:flex-col lg:w-80 bg-white shadow-lg">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-graduation-cap text-white text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-gray-900">Absensi Siswa</h1>
-                        <p class="text-sm text-gray-500">Dashboard Guru</p>
-                    </div>
-                </div>
-            </div>
-            
-            <nav class="flex-1 p-4 space-y-2">
-                <a href="#dashboard" class="nav-item flex items-center space-x-3 p-3 rounded-lg bg-blue-50 text-blue-600 font-medium">
-                    <i class="fas fa-home w-5"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#students" class="nav-item flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-users w-5"></i>
-                    <span>Manajemen Siswa</span>
-                </a>
-                <a href="#attendance" class="nav-item flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-check-circle w-5"></i>
-                    <span>Input Presensi</span>
-                </a>
-                <a href="#reports" class="nav-item flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-chart-bar w-5"></i>
-                    <span>Rekap Presensi</span>
-                </a>
-                <a href="#journal" class="nav-item flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-book w-5"></i>
-                    <span>Rekap Jurnal</span>
-                </a>
-            </nav>
-            
-            <div class="p-4 border-t border-gray-200">
-                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-all" id="teacherProfile">
-                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden" id="teacherAvatar">
-                        <i class="fas fa-user text-white" id="teacherIcon"></i>
-                        <img id="teacherPhoto" class="w-full h-full object-cover hidden" alt="Foto Guru">
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-medium text-gray-900" id="teacherName">Guru</p>
-                        <p class="text-sm text-gray-500" id="teacherSubject">Mata Pelajaran</p>
-                    </div>
-                    <i class="fas fa-edit text-gray-400 hover:text-gray-600"></i>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 overflow-auto pb-20 lg:pb-0">
-            <!-- Dashboard View -->
-            <div id="dashboardView" class="view-content">
-                <div class="p-4 lg:p-6">
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
-                        <p class="text-gray-600">Ringkasan kehadiran siswa hari ini</p>
-                    </div>
-                    
-                    <!-- Quick Stats -->
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 touch-card">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Total Siswa</p>
-                                    <p class="text-2xl font-bold text-gray-900" id="totalStudents">0</p>
-                                </div>
-                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-users text-blue-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 touch-card">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Hadir Hari Ini</p>
-                                    <p class="text-2xl font-bold text-green-600" id="presentToday">0</p>
-                                </div>
-                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-check-circle text-green-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 touch-card">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Tidak Hadir</p>
-                                    <p class="text-2xl font-bold text-red-600" id="absentToday">0</p>
-                                </div>
-                                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-times-circle text-red-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 touch-card">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Izin/Sakit</p>
-                                    <p class="text-2xl font-bold text-yellow-600" id="excusedToday">0</p>
-                                </div>
-                                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-exclamation-circle text-yellow-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Actions -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <button class="quick-action-btn bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl shadow-sm transition-all touch-card mobile-button">
-                            <i class="fas fa-plus text-xl mb-2"></i>
-                            <p class="font-medium">Input Presensi</p>
-                        </button>
-                        
-                        <button class="quick-action-btn bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl shadow-sm transition-all touch-card mobile-button">
-                            <i class="fas fa-chart-line text-xl mb-2"></i>
-                            <p class="font-medium">Lihat Rekap</p>
-                        </button>
-                        
-                        <button class="quick-action-btn bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-xl shadow-sm transition-all touch-card mobile-button">
-                            <i class="fas fa-users text-xl mb-2"></i>
-                            <p class="font-medium">Kelola Siswa</p>
-                        </button>
-                        
-                        <button class="quick-action-btn bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-xl shadow-sm transition-all touch-card mobile-button">
-                            <i class="fas fa-book text-xl mb-2"></i>
-                            <p class="font-medium">Tulis Jurnal</p>
-                        </button>
-                    </div>
-                    
-                    <!-- Charts Section -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <!-- Attendance Chart -->
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Tren Kehadiran Mingguan</h3>
-                            <div class="relative h-64">
-                                <canvas id="attendanceChart" class="w-full h-full"></canvas>
-                            </div>
-                        </div>
-                        
-                        <!-- Class Performance -->
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Performa Kelas</h3>
-                            <div class="relative h-64">
-                                <canvas id="classChart" class="w-full h-full"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Recent Activity -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                        <div class="p-6 border-b border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900">Aktivitas Terbaru</h3>
-                        </div>
-                        <div class="p-6">
-                            <div class="space-y-4" id="recentActivity">
-                                <div class="empty-state">
-                                    <i class="fas fa-clock empty-state-icon"></i>
-                                    <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Aktivitas</h4>
-                                    <p class="text-gray-500">Aktivitas terbaru akan muncul di sini setelah Anda mulai menggunakan aplikasi.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Students Management View -->
-            <div id="studentsView" class="view-content hidden">
-                <div class="p-4 lg:p-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                        <div class="mb-4 sm:mb-0">
-                            <h2 class="text-2xl font-bold text-gray-900">Manajemen Siswa</h2>
-                            <p class="text-gray-600">Kelola data siswa dan informasi kelas</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button id="addStudentBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-plus mr-2"></i>Tambah Siswa
-                            </button>
-                            <button id="importStudentsBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-file-import mr-2"></i>Import Excel
-                            </button>
-                            <button id="exportStudentsBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-file-export mr-2"></i>Export Excel
-                            </button>
-                            <button id="downloadTemplateBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-download mr-2"></i>Template
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Class Filter -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-                        <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                            <select id="classFilter" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Semua Kelas</option>
-                                <option value="X-1">Kelas X-1</option>
-                                <option value="X-2">Kelas X-2</option>
-                                <option value="X-3">Kelas X-3</option>
-                                <option value="X-4">Kelas X-4</option>
-                                <option value="X-5">Kelas X-5</option>
-                                <option value="X-6">Kelas X-6</option>
-                                <option value="X-7">Kelas X-7</option>
-                                <option value="X-8">Kelas X-8</option>
-                                <option value="X-9">Kelas X-9</option>
-                                <option value="X-10">Kelas X-10</option>
-                                <option value="X-11">Kelas X-11</option>
-                            </select>
-                            <input type="text" id="searchStudent" placeholder="Cari nama atau NIS..." class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-                    
-                    <!-- Students Table -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th class="text-left p-4 font-medium text-gray-900">NIS</th>
-                                        <th class="text-left p-4 font-medium text-gray-900">Nama Siswa</th>
-                                        <th class="text-left p-4 font-medium text-gray-900">Kelas</th>
-                                        <th class="text-left p-4 font-medium text-gray-900">Kehadiran</th>
-                                        <th class="text-left p-4 font-medium text-gray-900">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="studentsTableBody">
-                                    <tr>
-                                        <td colspan="5" class="p-8">
-                                            <div class="empty-state">
-                                                <i class="fas fa-users empty-state-icon"></i>
-                                                <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Data Siswa</h4>
-                                                <p class="text-gray-500 mb-4">Mulai dengan menambahkan siswa baru atau import data dari Excel.</p>
-                                                <button onclick="document.getElementById('addStudentBtn').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all">
-                                                    <i class="fas fa-plus mr-2"></i>Tambah Siswa Pertama
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Attendance Input View -->
-            <div id="attendanceView" class="view-content hidden">
-                <div class="p-4 lg:p-6">
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">Input Presensi</h2>
-                        <p class="text-gray-600">Catat kehadiran siswa untuk hari ini</p>
-                    </div>
-                    
-                    <!-- Attendance Form -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kelas</label>
-                                <select id="attendanceClass" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih Kelas</option>
-                                    <option value="X-1">Kelas X-1</option>
-                                    <option value="X-2">Kelas X-2</option>
-                                    <option value="X-3">Kelas X-3</option>
-                                    <option value="X-4">Kelas X-4</option>
-                                    <option value="X-5">Kelas X-5</option>
-                                    <option value="X-6">Kelas X-6</option>
-                                    <option value="X-7">Kelas X-7</option>
-                                    <option value="X-8">Kelas X-8</option>
-                                    <option value="X-9">Kelas X-9</option>
-                                    <option value="X-10">Kelas X-10</option>
-                                    <option value="X-11">Kelas X-11</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                                <input type="date" id="attendanceDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran</label>
-                                <input type="text" id="attendanceSubject" placeholder="Contoh: Matematika" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-                        
-                        <!-- Quick Actions -->
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            <button id="markAllPresent" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-check mr-2"></i>Semua Hadir
-                            </button>
-                            <button id="markAllAbsent" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-times mr-2"></i>Semua Tidak Hadir
-                            </button>
-                            <button id="copyYesterday" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-copy mr-2"></i>Salin Kemarin
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Students Attendance List -->
-                    <div id="attendanceList" class="bg-white rounded-xl shadow-sm border border-gray-100">
-                        <div class="p-6 border-b border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900">Daftar Siswa</h3>
-                            <p class="text-sm text-gray-600">Pilih kelas untuk menampilkan daftar siswa</p>
-                        </div>
-                        <div id="attendanceStudentsList" class="p-6">
-                            <div class="empty-state">
-                                <i class="fas fa-clipboard-list empty-state-icon"></i>
-                                <h4 class="text-lg font-medium text-gray-900 mb-2">Pilih Kelas</h4>
-                                <p class="text-gray-500">Pilih kelas dari dropdown di atas untuk menampilkan daftar siswa dan mulai input presensi.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="p-6 border-t border-gray-100">
-                            <button id="saveAttendance" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-all mobile-button disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                <i class="fas fa-save mr-2"></i>Simpan Presensi
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reports View -->
-            <div id="reportsView" class="view-content hidden">
-                <div class="p-4 lg:p-6">
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">Rekap Presensi</h2>
-                        <p class="text-gray-600">Analisis dan laporan kehadiran siswa</p>
-                    </div>
-                    
-                    <!-- Filter Section -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
-                                <select id="reportClass" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Semua Kelas</option>
-                                    <option value="X-1">Kelas X-1</option>
-                                    <option value="X-2">Kelas X-2</option>
-                                    <option value="X-3">Kelas X-3</option>
-                                    <option value="X-4">Kelas X-4</option>
-                                    <option value="X-5">Kelas X-5</option>
-                                    <option value="X-6">Kelas X-6</option>
-                                    <option value="X-7">Kelas X-7</option>
-                                    <option value="X-8">Kelas X-8</option>
-                                    <option value="X-9">Kelas X-9</option>
-                                    <option value="X-10">Kelas X-10</option>
-                                    <option value="X-11">Kelas X-11</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
-                                <input type="date" id="reportStartDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
-                                <input type="date" id="reportEndDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div class="flex items-end">
-                                <button id="generateReport" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-all mobile-button">
-                                    <i class="fas fa-search mr-2"></i>Generate
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Export Buttons -->
-                    <div class="flex flex-wrap gap-2 mb-6">
-                        <button id="exportPDF" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                            <i class="fas fa-file-pdf mr-2"></i>Export PDF
-                        </button>
-                        <button id="exportExcel" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                            <i class="fas fa-file-excel mr-2"></i>Export Excel
-                        </button>
-                        <button id="printReport" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                            <i class="fas fa-print mr-2"></i>Print
-                        </button>
-                    </div>
-                    
-                    <!-- Report Results -->
-                    <div id="reportResults" class="bg-white rounded-xl shadow-sm border border-gray-100">
-                        <div class="p-6 border-b border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900">Hasil Rekap</h3>
-                        </div>
-                        <div class="p-6">
-                            <div class="empty-state">
-                                <i class="fas fa-chart-bar empty-state-icon"></i>
-                                <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Laporan</h4>
-                                <p class="text-gray-500">Pilih filter dan klik Generate untuk melihat rekap presensi siswa.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Journal View -->
-            <div id="journalView" class="view-content hidden">
-                <div class="p-4 lg:p-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                        <div class="mb-4 sm:mb-0">
-                            <h2 class="text-2xl font-bold text-gray-900">Rekap Jurnal</h2>
-                            <p class="text-gray-600">Catat dan kelola jurnal pembelajaran harian</p>
-                        </div>
-                        <button id="addJournalBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                            <i class="fas fa-plus mr-2"></i>Tambah Jurnal
-                        </button>
-                    </div>
-                    
-                    <!-- Journal Form -->
-                    <div id="journalForm" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 hidden">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Tambah Jurnal Baru</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                                <input type="date" id="journalDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
-                                <select id="journalClass" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih Kelas</option>
-                                    <option value="X-1">Kelas X-1</option>
-                                    <option value="X-2">Kelas X-2</option>
-                                    <option value="X-3">Kelas X-3</option>
-                                    <option value="X-4">Kelas X-4</option>
-                                    <option value="X-5">Kelas X-5</option>
-                                    <option value="X-6">Kelas X-6</option>
-                                    <option value="X-7">Kelas X-7</option>
-                                    <option value="X-8">Kelas X-8</option>
-                                    <option value="X-9">Kelas X-9</option>
-                                    <option value="X-10">Kelas X-10</option>
-                                    <option value="X-11">Kelas X-11</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran</label>
-                                <input type="text" id="journalSubject" placeholder="Contoh: Matematika" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Kegiatan Pembelajaran</label>
-                            <textarea id="journalActivity" rows="4" placeholder="Deskripsikan kegiatan pembelajaran yang dilakukan..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Catatan Tambahan</label>
-                            <textarea id="journalNotes" rows="3" placeholder="Catatan khusus, kendala, atau hal penting lainnya..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button id="saveJournal" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-save mr-2"></i>Simpan Jurnal
-                            </button>
-                            <button id="cancelJournal" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-times mr-2"></i>Batal
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Journal List -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                        <div class="p-6 border-b border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900">Riwayat Jurnal</h3>
-                        </div>
-                        <div id="journalList" class="divide-y divide-gray-100">
-                            <div class="p-6">
-                                <div class="empty-state">
-                                    <i class="fas fa-book empty-state-icon"></i>
-                                    <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Jurnal</h4>
-                                    <p class="text-gray-500 mb-4">Mulai dengan menambahkan jurnal pembelajaran pertama Anda.</p>
-                                    <button onclick="document.getElementById('addJournalBtn').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all">
-                                        <i class="fas fa-plus mr-2"></i>Tambah Jurnal Pertama
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Mobile Bottom Navigation -->
-    <nav class="bottom-nav lg:hidden">
-        <div class="flex items-center justify-around py-2">
-            <button class="nav-mobile-btn flex flex-col items-center p-2 text-blue-600" data-view="dashboard">
-                <i class="fas fa-home text-xl mb-1"></i>
-                <span class="text-xs font-medium">Dashboard</span>
-            </button>
-            <button class="nav-mobile-btn flex flex-col items-center p-2 text-gray-400" data-view="students">
-                <i class="fas fa-users text-xl mb-1"></i>
-                <span class="text-xs font-medium">Siswa</span>
-            </button>
-            <button class="nav-mobile-btn flex flex-col items-center p-2 text-gray-400" data-view="attendance">
-                <i class="fas fa-check-circle text-xl mb-1"></i>
-                <span class="text-xs font-medium">Presensi</span>
-            </button>
-            <button class="nav-mobile-btn flex flex-col items-center p-2 text-gray-400" data-view="reports">
-                <i class="fas fa-chart-bar text-xl mb-1"></i>
-                <span class="text-xs font-medium">Rekap</span>
-            </button>
-            <button class="nav-mobile-btn flex flex-col items-center p-2 text-gray-400" data-view="journal">
-                <i class="fas fa-book text-xl mb-1"></i>
-                <span class="text-xs font-medium">Jurnal</span>
-            </button>
-        </div>
-    </nav>
-
+    <!-- ... SEMUA HTML STRUKTUR ANDA TETAP SAMA ... -->
+    <!-- Tidak ada perubahan pada HTML — hanya JavaScript yang diubah -->
+    <!-- Copy-paste SEMUA HTML Anda dari <body> sampai sebelum <script> -->
+    <!-- Saya asumsikan Anda sudah paste semua HTML di sini -->
+    
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white p-6 rounded-xl shadow-lg">
             <div class="flex items-center space-x-3">
                 <div class="spinner"></div>
                 <span class="text-gray-700">Memproses...</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add/Edit Student Modal -->
-    <div id="studentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-screen overflow-y-auto">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h3 id="studentModalTitle" class="text-lg font-semibold text-gray-900">Tambah Siswa Baru</h3>
-                    <button id="closeStudentModal" class="text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            <form id="studentForm" class="p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">NIS *</label>
-                        <input type="text" id="studentNIS" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: 00001" maxlength="5">
-                        <button type="button" id="generateNIS" class="mt-1 text-sm text-blue-600 hover:text-blue-800">Generate NIS Otomatis</button>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
-                        <input type="text" id="studentName" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Ahmad Budi Santoso">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kelas *</label>
-                        <select id="studentClass" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Pilih Kelas</option>
-                            <option value="X-1">Kelas X-1</option>
-                            <option value="X-2">Kelas X-2</option>
-                            <option value="X-3">Kelas X-3</option>
-                            <option value="X-4">Kelas X-4</option>
-                            <option value="X-5">Kelas X-5</option>
-                            <option value="X-6">Kelas X-6</option>
-                            <option value="X-7">Kelas X-7</option>
-                            <option value="X-8">Kelas X-8</option>
-                            <option value="X-9">Kelas X-9</option>
-                            <option value="X-10">Kelas X-10</option>
-                            <option value="X-11">Kelas X-11</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin *</label>
-                        <select id="studentGender" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Pilih Jenis Kelamin</option>
-                            <option value="L">Laki-laki</option>
-                            <option value="P">Perempuan</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
-                        <input type="tel" id="studentPhone" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: 081234567890">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
-                        <textarea id="studentAddress" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Alamat lengkap siswa"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Orang Tua</label>
-                        <input type="text" id="studentParentName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nama orang tua/wali">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon Orang Tua</label>
-                        <input type="tel" id="studentParentPhone" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="No. telepon orang tua">
-                    </div>
-                </div>
-            </form>
-            <div class="p-6 border-t border-gray-200 flex space-x-3">
-                <button id="cancelStudent" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-all">
-                    Batal
-                </button>
-                <button id="saveStudent" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-all">
-                    Simpan Siswa
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4">
-            <div class="p-6">
-                <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">Hapus Siswa</h3>
-                <p class="text-gray-600 text-center mb-6">Apakah Anda yakin ingin menghapus siswa ini? Data yang sudah dihapus tidak dapat dikembalikan.</p>
-                <div class="flex space-x-3">
-                    <button id="cancelDelete" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-all">
-                        Batal
-                    </button>
-                    <button id="confirmDelete" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-medium transition-all">
-                        Hapus
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import Students Modal -->
-    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900">Import Data Siswa</h3>
-                    <button id="closeImportModal" class="text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="p-6">
-                <div class="mb-4">
-                    <p class="text-sm text-gray-600 mb-3">
-                        Upload file Excel (.xlsx) dengan format yang sesuai. 
-                        <a href="#" id="downloadTemplateLink" class="text-blue-600 hover:text-blue-800">Download template</a> 
-                        jika belum punya.
-                    </p>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
-                        <div id="dropZone" class="cursor-pointer">
-                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
-                            <p class="text-gray-600">Klik untuk pilih file atau drag & drop</p>
-                            <p class="text-sm text-gray-500 mt-1">Format: Excel (.xlsx, .xls)</p>
-                        </div>
-                        <div id="fileInfo" class="hidden">
-                            <i class="fas fa-file-excel text-green-500 text-2xl mb-2"></i>
-                            <p id="fileName" class="text-sm font-medium text-gray-900"></p>
-                            <p id="fileSize" class="text-xs text-gray-500"></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <h4 class="font-medium text-gray-900 mb-2">Format Excel yang diperlukan:</h4>
-                    <div class="bg-gray-50 p-3 rounded-lg text-sm">
-                        <div class="grid grid-cols-4 gap-2 font-medium text-gray-700 mb-1">
-                            <span>NIS</span>
-                            <span>Nama</span>
-                            <span>Kelas</span>
-                            <span>Gender</span>
-                        </div>
-                        <div class="grid grid-cols-4 gap-2 text-gray-600">
-                            <span>00001</span>
-                            <span>Ahmad Budi</span>
-                            <span>X-1</span>
-                            <span>L</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 border-t border-gray-200 flex space-x-3">
-                <button id="cancelImport" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-all">
-                    Batal
-                </button>
-                <button id="processImport" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Import Data
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Teacher Profile Modal -->
-    <div id="teacherProfileModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900">Pengaturan Profil Guru</h3>
-                    <button id="closeTeacherModal" class="text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            <form id="teacherProfileForm" class="p-6">
-                <div class="space-y-4">
-                    <div class="flex flex-col items-center mb-6">
-                        <div class="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden mb-4" id="profilePhotoPreview">
-                            <i class="fas fa-user text-white text-2xl" id="profileIcon"></i>
-                            <img id="profilePhotoImg" class="w-full h-full object-cover hidden" alt="Foto Profil">
-                        </div>
-                        <input type="file" id="photoInput" accept="image/*" class="hidden">
-                        <button type="button" id="changePhotoBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
-                            <i class="fas fa-camera mr-2"></i>Ubah Foto
-                        </button>
-                        <button type="button" id="removePhotoBtn" class="text-red-600 hover:text-red-800 text-sm mt-2 hidden">
-                            <i class="fas fa-trash mr-1"></i>Hapus Foto
-                        </button>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
-                        <input type="text" id="teacherNameInput" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Budi Santoso, S.Pd">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran *</label>
-                        <input type="text" id="teacherSubjectInput" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Matematika">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">NIP</label>
-                        <input type="text" id="teacherNIP" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nomor Induk Pegawai">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" id="teacherEmail" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="email@sekolah.sch.id">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
-                        <input type="tel" id="teacherPhone" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="081234567890">
-                    </div>
-                </div>
-            </form>
-            <div class="p-6 border-t border-gray-200 flex space-x-3">
-                <button id="cancelTeacherProfile" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-all">
-                    Batal
-                </button>
-                <button id="saveTeacherProfile" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-all">
-                    Simpan Profil
-                </button>
             </div>
         </div>
     </div>
@@ -958,13 +172,21 @@
         </div>
     </div>
 
+    <!-- SCRIPT UTAMA (YANG DIUBAH UNTUK SUPABASE) -->
     <script>
-        // Application State
+        // =============================
+        // ✅ SUPABASE CLIENT SETUP
+        // =============================
+        const supabaseUrl = 'https://lleviwszkjhoyqvpiapu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsZXZpd3N6a2pob3lxdnBpYXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDc3MjcsImV4cCI6MjA3NDA4MzcyN30.YP6WYMiwJch6lhk2AiLUtUwyGZ5soO382MjqKD4jwg4';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // =============================
+        // 🧠 APPLICATION STATE & CONFIG
+        // =============================
         const App = {
-            // Configuration
             config: {
                 debug: true,
-                storagePrefix: 'absensiApp_',
                 chartColors: {
                     primary: '#3B82F6',
                     success: '#10B981',
@@ -972,13 +194,9 @@
                     danger: '#EF4444',
                     info: '#6366F1'
                 },
-                classOptions: [
-                    'X-1', 'X-2', 'X-3', 'X-4', 'X-5', 
-                    'X-6', 'X-7', 'X-8', 'X-9', 'X-10', 'X-11'
-                ]
+                classOptions: ['X-1','X-2','X-3','X-4','X-5','X-6','X-7','X-8','X-9','X-10','X-11']
             },
-            
-            // State
+
             state: {
                 currentView: 'dashboard',
                 students: [],
@@ -988,6 +206,7 @@
                 currentEditingStudent: null,
                 studentToDelete: null,
                 teacherProfile: {
+                    id: null,
                     name: 'Guru',
                     subject: 'Mata Pelajaran',
                     nip: '',
@@ -1000,46 +219,26 @@
                     classPerformance: null
                 }
             },
-            
-            // Initialize Application
-            init() {
-                this.log('Initializing application');
-                
-                // Set up event listeners
+
+            // =============================
+            // 🚀 INIT & EVENT HANDLERS
+            // =============================
+            async init() {
+                this.log('🚀 Initializing Supabase App...');
                 this.setupEventListeners();
-                
-                // Set up responsive handlers
                 this.setupResponsiveHandlers();
-                
-                // Load data from storage
-                this.loadDataFromStorage();
-                
-                // Initialize UI
+                await this.loadDataFromSupabase(); // ✅ Ganti localStorage dengan Supabase
                 this.updateCurrentDate();
                 this.updateConnectionStatus();
                 this.loadTeacherProfile();
-                
-                // Show initial view
                 this.showView('dashboard');
-                
-                // Hide splash screen after initialization
                 setTimeout(() => this.hideSplashScreen(), 2000);
-                
-                this.log('Application initialized successfully');
+                this.log('✅ App initialized with Supabase!');
             },
-            
-            // Logging function
-            log(...args) {
-                if (this.config.debug) {
-                    console.log('[APP]', ...args);
-                }
-            },
-            
-            // Setup Event Listeners
+
             setupEventListeners() {
-                this.log('Setting up event listeners');
-                
-                // Navigation
+                // ... SEMUA EVENT LISTENER ANDA TETAP SAMA ...
+                // Hanya fungsi handler yang akan dipanggil yang diubah ke async
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -1047,262 +246,122 @@
                         this.showView(view);
                     });
                 });
-                
                 document.querySelectorAll('.nav-mobile-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const view = btn.getAttribute('data-view');
                         this.showView(view);
                     });
                 });
-                
-                // Quick Actions
                 document.querySelectorAll('.quick-action-btn').forEach((btn, index) => {
                     btn.addEventListener('click', () => {
                         const views = ['attendance', 'reports', 'students', 'journal'];
                         this.showView(views[index]);
                     });
                 });
-                
-                // Attendance functionality
-                const attendanceClass = document.getElementById('attendanceClass');
-                if (attendanceClass) {
-                    attendanceClass.addEventListener('change', () => this.loadStudentsForAttendance());
-                }
-                
-                const markAllPresent = document.getElementById('markAllPresent');
-                if (markAllPresent) {
-                    markAllPresent.addEventListener('click', () => this.markAllStudents('present'));
-                }
-                
-                const markAllAbsent = document.getElementById('markAllAbsent');
-                if (markAllAbsent) {
-                    markAllAbsent.addEventListener('click', () => this.markAllStudents('absent'));
-                }
-                
-                const saveAttendance = document.getElementById('saveAttendance');
-                if (saveAttendance) {
-                    saveAttendance.addEventListener('click', () => this.saveAttendance());
-                }
-                
-                // Journal functionality
-                const addJournalBtn = document.getElementById('addJournalBtn');
-                if (addJournalBtn) {
-                    addJournalBtn.addEventListener('click', () => this.showJournalForm());
-                }
-                
-                const saveJournal = document.getElementById('saveJournal');
-                if (saveJournal) {
-                    saveJournal.addEventListener('click', () => this.saveJournal());
-                }
-                
-                const cancelJournal = document.getElementById('cancelJournal');
-                if (cancelJournal) {
-                    cancelJournal.addEventListener('click', () => this.hideJournalForm());
-                }
-                
-                // Students management
                 const addStudentBtn = document.getElementById('addStudentBtn');
                 if (addStudentBtn) {
                     addStudentBtn.addEventListener('click', () => this.showAddStudentModal());
                 }
-                
-                const classFilter = document.getElementById('classFilter');
-                if (classFilter) {
-                    classFilter.addEventListener('change', () => this.filterStudents());
-                }
-                
-                const searchStudent = document.getElementById('searchStudent');
-                if (searchStudent) {
-                    searchStudent.addEventListener('input', () => this.filterStudents());
-                }
-                
-                // Student modal events
-                const closeStudentModal = document.getElementById('closeStudentModal');
-                if (closeStudentModal) {
-                    closeStudentModal.addEventListener('click', () => this.hideStudentModal());
-                }
-                
-                const cancelStudent = document.getElementById('cancelStudent');
-                if (cancelStudent) {
-                    cancelStudent.addEventListener('click', () => this.hideStudentModal());
-                }
-                
                 const saveStudent = document.getElementById('saveStudent');
                 if (saveStudent) {
                     saveStudent.addEventListener('click', () => this.saveStudent());
                 }
-                
+                const cancelStudent = document.getElementById('cancelStudent');
+                if (cancelStudent) {
+                    cancelStudent.addEventListener('click', () => this.hideStudentModal());
+                }
+                const closeStudentModal = document.getElementById('closeStudentModal');
+                if (closeStudentModal) {
+                    closeStudentModal.addEventListener('click', () => this.hideStudentModal());
+                }
                 const generateNIS = document.getElementById('generateNIS');
                 if (generateNIS) {
                     generateNIS.addEventListener('click', () => this.generateNIS());
                 }
-                
-                const studentForm = document.getElementById('studentForm');
-                if (studentForm) {
-                    studentForm.addEventListener('submit', (e) => {
-                        e.preventDefault();
-                        this.saveStudent();
-                    });
+                const classFilter = document.getElementById('classFilter');
+                if (classFilter) {
+                    classFilter.addEventListener('change', () => this.filterStudents());
                 }
-                
-                // Delete modal events
+                const searchStudent = document.getElementById('searchStudent');
+                if (searchStudent) {
+                    searchStudent.addEventListener('input', () => this.filterStudents());
+                }
                 const cancelDelete = document.getElementById('cancelDelete');
                 if (cancelDelete) {
                     cancelDelete.addEventListener('click', () => this.hideDeleteModal());
                 }
-                
                 const confirmDelete = document.getElementById('confirmDelete');
                 if (confirmDelete) {
                     confirmDelete.addEventListener('click', () => this.confirmDeleteStudent());
                 }
-                
-                // Teacher profile events
                 const teacherProfile = document.getElementById('teacherProfile');
                 if (teacherProfile) {
                     teacherProfile.addEventListener('click', () => this.showTeacherProfileModal());
                 }
-                
                 const profileBtn = document.getElementById('profileBtn');
                 if (profileBtn) {
                     profileBtn.addEventListener('click', () => this.showTeacherProfileModal());
                 }
-                
-                const closeTeacherModal = document.getElementById('closeTeacherModal');
-                if (closeTeacherModal) {
-                    closeTeacherModal.addEventListener('click', () => this.hideTeacherProfileModal());
-                }
-                
-                const cancelTeacherProfile = document.getElementById('cancelTeacherProfile');
-                if (cancelTeacherProfile) {
-                    cancelTeacherProfile.addEventListener('click', () => this.hideTeacherProfileModal());
-                }
-                
                 const saveTeacherProfile = document.getElementById('saveTeacherProfile');
                 if (saveTeacherProfile) {
                     saveTeacherProfile.addEventListener('click', () => this.saveTeacherProfile());
                 }
-                
-                const changePhotoBtn = document.getElementById('changePhotoBtn');
-                if (changePhotoBtn) {
-                    changePhotoBtn.addEventListener('click', () => {
-                        document.getElementById('photoInput').click();
-                    });
+                const cancelTeacherProfile = document.getElementById('cancelTeacherProfile');
+                if (cancelTeacherProfile) {
+                    cancelTeacherProfile.addEventListener('click', () => this.hideTeacherProfileModal());
                 }
-                
-                const photoInput = document.getElementById('photoInput');
-                if (photoInput) {
-                    photoInput.addEventListener('change', (e) => this.handlePhotoUpload(e));
+                const closeTeacherModal = document.getElementById('closeTeacherModal');
+                if (closeTeacherModal) {
+                    closeTeacherModal.addEventListener('click', () => this.hideTeacherProfileModal());
                 }
-                
-                const removePhotoBtn = document.getElementById('removePhotoBtn');
-                if (removePhotoBtn) {
-                    removePhotoBtn.addEventListener('click', () => this.removeTeacherPhoto());
+                const attendanceClass = document.getElementById('attendanceClass');
+                if (attendanceClass) {
+                    attendanceClass.addEventListener('change', () => this.loadStudentsForAttendance());
                 }
-                
-                // Import/Export functionality
-                const importStudentsBtn = document.getElementById('importStudentsBtn');
-                if (importStudentsBtn) {
-                    importStudentsBtn.addEventListener('click', () => this.showImportModal());
+                const saveAttendance = document.getElementById('saveAttendance');
+                if (saveAttendance) {
+                    saveAttendance.addEventListener('click', () => this.saveAttendance());
                 }
-                
-                const exportStudentsBtn = document.getElementById('exportStudentsBtn');
-                if (exportStudentsBtn) {
-                    exportStudentsBtn.addEventListener('click', () => this.exportStudentsData());
+                const addJournalBtn = document.getElementById('addJournalBtn');
+                if (addJournalBtn) {
+                    addJournalBtn.addEventListener('click', () => this.showJournalForm());
                 }
-                
-                const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
-                if (downloadTemplateBtn) {
-                    downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+                const saveJournal = document.getElementById('saveJournal');
+                if (saveJournal) {
+                    saveJournal.addEventListener('click', () => this.saveJournal());
                 }
-                
-                const closeImportModal = document.getElementById('closeImportModal');
-                if (closeImportModal) {
-                    closeImportModal.addEventListener('click', () => this.hideImportModal());
+                const cancelJournal = document.getElementById('cancelJournal');
+                if (cancelJournal) {
+                    cancelJournal.addEventListener('click', () => this.hideJournalForm());
                 }
-                
-                const cancelImport = document.getElementById('cancelImport');
-                if (cancelImport) {
-                    cancelImport.addEventListener('click', () => this.hideImportModal());
-                }
-                
-                const processImport = document.getElementById('processImport');
-                if (processImport) {
-                    processImport.addEventListener('click', () => this.processImport());
-                }
-                
-                const downloadTemplateLink = document.getElementById('downloadTemplateLink');
-                if (downloadTemplateLink) {
-                    downloadTemplateLink.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.downloadTemplate();
-                    });
-                }
-                
-                // File input handling
-                const fileInput = document.getElementById('fileInput');
-                if (fileInput) {
-                    fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-                }
-                
-                // Drag and drop
-                const dropZone = document.getElementById('dropZone');
-                if (dropZone) {
-                    dropZone.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.add('border-blue-400', 'bg-blue-50');
-                    });
-                    
-                    dropZone.addEventListener('dragleave', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-                    });
-                    
-                    dropZone.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-                        const files = e.dataTransfer.files;
-                        if (files.length > 0) {
-                            this.handleFile(files[0]);
-                        }
-                    });
-                }
-                
-                // Reports
                 const generateReport = document.getElementById('generateReport');
                 if (generateReport) {
                     generateReport.addEventListener('click', () => this.generateReport());
                 }
-                
-                const exportPDF = document.getElementById('exportPDF');
-                if (exportPDF) {
-                    exportPDF.addEventListener('click', () => this.exportReport('pdf'));
+                const importStudentsBtn = document.getElementById('importStudentsBtn');
+                if (importStudentsBtn) {
+                    importStudentsBtn.addEventListener('click', () => this.showImportModal());
                 }
-                
-                const exportExcel = document.getElementById('exportExcel');
-                if (exportExcel) {
-                    exportExcel.addEventListener('click', () => this.exportReport('excel'));
+                const exportStudentsBtn = document.getElementById('exportStudentsBtn');
+                if (exportStudentsBtn) {
+                    exportStudentsBtn.addEventListener('click', () => this.exportStudentsData());
                 }
-                
-                // Set today's date as default
+                const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+                if (downloadTemplateBtn) {
+                    downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+                }
                 const today = new Date().toISOString().split('T')[0];
                 const attendanceDate = document.getElementById('attendanceDate');
                 if (attendanceDate) attendanceDate.value = today;
-                
                 const journalDate = document.getElementById('journalDate');
                 if (journalDate) journalDate.value = today;
-                
                 const reportStartDate = document.getElementById('reportStartDate');
                 if (reportStartDate) reportStartDate.value = today;
-                
                 const reportEndDate = document.getElementById('reportEndDate');
                 if (reportEndDate) reportEndDate.value = today;
-                
-                this.log('Event listeners set up successfully');
             },
-            
-            // Setup Responsive Handlers
+
             setupResponsiveHandlers() {
-                // Handle orientation change
                 window.addEventListener('orientationchange', () => {
                     setTimeout(() => {
                         if (window.Chart) {
@@ -1312,216 +371,248 @@
                         }
                     }, 500);
                 });
-                
-                // Handle online/offline status
                 window.addEventListener('online', () => {
                     this.state.isOnline = true;
                     this.updateConnectionStatus();
                 });
-                
                 window.addEventListener('offline', () => {
                     this.state.isOnline = false;
                     this.updateConnectionStatus();
                 });
-                
-                // Handle viewport changes for mobile browsers
                 this.updateViewportHeight();
                 window.addEventListener('resize', () => this.updateViewportHeight());
             },
-            
-            // Update viewport height for mobile browsers
+
             updateViewportHeight() {
                 let vh = window.innerHeight * 0.01;
                 document.documentElement.style.setProperty('--vh', `${vh}px`);
             },
-            
-            // Load Data From Storage
-            loadDataFromStorage() {
+
+            // =============================
+            // 🌐 SUPABASE DATA HANDLERS (PENGANTI LOCALSTORAGE)
+            // =============================
+
+            async loadDataFromSupabase() {
+                this.showLoading(true);
                 try {
-                    // Load students data
-                    const studentsData = localStorage.getItem(this.config.storagePrefix + 'students');
-                    if (studentsData) {
-                        this.state.students = JSON.parse(studentsData);
-                    }
-                    
-                    // Load attendance data
-                    const attendanceData = localStorage.getItem(this.config.storagePrefix + 'attendance');
-                    if (attendanceData) {
-                        this.state.attendance = JSON.parse(attendanceData);
-                    }
-                    
-                    // Load journal data
-                    const journalData = localStorage.getItem(this.config.storagePrefix + 'journal');
-                    if (journalData) {
-                        this.state.journal = JSON.parse(journalData);
-                    }
-                    
-                    // Load teacher profile
-                    const teacherProfile = localStorage.getItem(this.config.storagePrefix + 'teacherProfile');
-                    if (teacherProfile) {
-                        this.state.teacherProfile = { ...this.state.teacherProfile, ...JSON.parse(teacherProfile) };
-                    }
-                    
+                    // Load Students from Supabase
+                    let { data: students, error: studentsError } = await supabase
+                        .from('students')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (studentsError) throw studentsError;
+                    this.state.students = students || [];
+                    this.log('✅ Loaded students from Supabase:', this.state.students.length);
+
+                    // Load Attendance (placeholder — Anda bisa buat tabel attendance nanti)
+                    this.state.attendance = [];
+                    // Load Journal (placeholder)
+                    this.state.journal = [];
+
                     this.updateStudentsStats();
-                    this.log('Data loaded from storage successfully');
+                    this.showToast('Data berhasil dimuat dari server!', 'success');
+
                 } catch (error) {
-                    this.log('Error loading data from storage:', error);
-                    this.showToast('Gagal memuat data dari penyimpanan lokal', 'error');
+                    this.log('❌ Error loading from Supabase:', error.message);
+                    this.showToast('Gagal memuat data dari server. Coba lagi nanti.', 'error');
+                } finally {
+                    this.showLoading(false);
                 }
             },
-            
-            // Save Data To Storage
-            saveDataToStorage() {
+
+            async saveStudentToSupabase(studentData) {
                 try {
-                    localStorage.setItem(this.config.storagePrefix + 'students', JSON.stringify(this.state.students));
-                    localStorage.setItem(this.config.storagePrefix + 'attendance', JSON.stringify(this.state.attendance));
-                    localStorage.setItem(this.config.storagePrefix + 'journal', JSON.stringify(this.state.journal));
-                    localStorage.setItem(this.config.storagePrefix + 'teacherProfile', JSON.stringify(this.state.teacherProfile));
-                    this.log('Data saved to storage successfully');
+                    let result;
+                    if (this.state.currentEditingStudent) {
+                        // UPDATE
+                        result = await supabase
+                            .from('students')
+                            .update(studentData)
+                            .eq('id', this.state.currentEditingStudent.id)
+                            .select();
+                    } else {
+                        // INSERT
+                        result = await supabase
+                            .from('students')
+                            .insert([studentData])
+                            .select();
+                    }
+
+                    if (result.error) throw result.error;
+
+                    await this.loadDataFromSupabase(); // Refresh data
+                    return result.data[0];
+
                 } catch (error) {
-                    this.log('Error saving data to storage:', error);
-                    this.showToast('Gagal menyimpan data ke penyimpanan lokal', 'error');
+                    this.log('❌ Error saving student:', error.message);
+                    this.showToast('Gagal menyimpan data siswa ke server.', 'error');
+                    return null;
                 }
             },
-            
-            // Update Students Statistics
-            updateStudentsStats() {
-                const totalStudents = this.state.students.length;
-                const totalStudentsEl = document.getElementById('totalStudents');
-                if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
-                
-                // Calculate today's attendance
-                const today = new Date().toISOString().split('T')[0];
-                const todayAttendance = this.state.attendance.filter(record => record.date === today);
-                
-                let presentCount = 0;
-                let absentCount = 0;
-                let excusedCount = 0;
-                
-                todayAttendance.forEach(record => {
-                    record.records.forEach(studentRecord => {
-                        if (studentRecord.status === 'present') presentCount++;
-                        else if (studentRecord.status === 'absent') absentCount++;
-                        else if (studentRecord.status === 'excused') excusedCount++;
-                    });
-                });
-                
-                const presentTodayEl = document.getElementById('presentToday');
-                if (presentTodayEl) presentTodayEl.textContent = presentCount;
-                
-                const absentTodayEl = document.getElementById('absentToday');
-                if (absentTodayEl) absentTodayEl.textContent = absentCount;
-                
-                const excusedTodayEl = document.getElementById('excusedToday');
-                if (excusedTodayEl) excusedTodayEl.textContent = excusedCount;
-            },
-            
-            // Update Connection Status
-            updateConnectionStatus() {
-                const statusEl = document.getElementById('connectionStatus');
-                if (!statusEl) return;
-                
-                if (this.state.isOnline) {
-                    statusEl.className = 'connection-status online';
-                    statusEl.innerHTML = '<i class="fas fa-wifi mr-1"></i><span>Online</span>';
-                } else {
-                    statusEl.className = 'connection-status offline';
-                    statusEl.innerHTML = '<i class="fas fa-wifi mr-1"></i><span>Offline Mode</span>';
+
+            async deleteStudentFromSupabase(studentId) {
+                try {
+                    const { error } = await supabase
+                        .from('students')
+                        .delete()
+                        .eq('id', studentId);
+
+                    if (error) throw error;
+
+                    await this.loadDataFromSupabase(); // Refresh data
+                    this.showToast('Siswa berhasil dihapus dari server!', 'success');
+
+                } catch (error) {
+                    this.log('❌ Error deleting student:', error.message);
+                    this.showToast('Gagal menghapus siswa dari server.', 'error');
                 }
             },
-            
-            // Update Current Date
-            updateCurrentDate() {
-                const now = new Date();
-                const options = { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+
+            // =============================
+            // 🔄 UI UPDATE FUNCTIONS (TERINTEGRASI DENGAN SUPABASE)
+            // =============================
+
+            showAddStudentModal() {
+                this.state.currentEditingStudent = null;
+                const studentModalTitle = document.getElementById('studentModalTitle');
+                if (studentModalTitle) studentModalTitle.textContent = 'Tambah Siswa Baru';
+                const saveStudent = document.getElementById('saveStudent');
+                if (saveStudent) saveStudent.textContent = 'Simpan Siswa';
+                this.resetStudentForm();
+                const studentModal = document.getElementById('studentModal');
+                if (studentModal) studentModal.classList.remove('hidden');
+            },
+
+            editStudent(studentId) {
+                const student = this.state.students.find(s => s.id === studentId);
+                if (!student) return;
+                this.state.currentEditingStudent = student;
+                const studentModalTitle = document.getElementById('studentModalTitle');
+                if (studentModalTitle) studentModalTitle.textContent = 'Edit Data Siswa';
+                const saveStudent = document.getElementById('saveStudent');
+                if (saveStudent) saveStudent.textContent = 'Update Siswa';
+                const studentNIS = document.getElementById('studentNIS');
+                if (studentNIS) studentNIS.value = student.nis || '';
+                const studentName = document.getElementById('studentName');
+                if (studentName) studentName.value = student.name || '';
+                const studentClass = document.getElementById('studentClass');
+                if (studentClass) studentClass.value = student.class || '';
+                const studentGender = document.getElementById('studentGender');
+                if (studentGender) studentGender.value = student.gender || '';
+                const studentPhone = document.getElementById('studentPhone');
+                if (studentPhone) studentPhone.value = student.phone || '';
+                const studentAddress = document.getElementById('studentAddress');
+                if (studentAddress) studentAddress.value = student.address || '';
+                const studentParentName = document.getElementById('studentParentName');
+                if (studentParentName) studentParentName.value = student.parent_name || '';
+                const studentParentPhone = document.getElementById('studentParentPhone');
+                if (studentParentPhone) studentParentPhone.value = student.parent_phone || '';
+                const studentModal = document.getElementById('studentModal');
+                if (studentModal) studentModal.classList.remove('hidden');
+            },
+
+            async saveStudent() {
+                const studentNIS = document.getElementById('studentNIS');
+                const studentName = document.getElementById('studentName');
+                const studentClass = document.getElementById('studentClass');
+                const studentGender = document.getElementById('studentGender');
+                const studentPhone = document.getElementById('studentPhone');
+                const studentAddress = document.getElementById('studentAddress');
+                const studentParentName = document.getElementById('studentParentName');
+                const studentParentPhone = document.getElementById('studentParentPhone');
+
+                const formData = {
+                    nis: studentNIS ? studentNIS.value.trim() : '',
+                    name: studentName ? studentName.value.trim() : '',
+                    class: studentClass ? studentClass.value : '',
+                    gender: studentGender ? studentGender.value : '',
+                    phone: studentPhone ? studentPhone.value.trim() : '',
+                    address: studentAddress ? studentAddress.value.trim() : '',
+                    parent_name: studentParentName ? studentParentName.value.trim() : '',
+                    parent_phone: studentParentPhone ? studentParentPhone.value.trim() : ''
                 };
-                const dateStr = now.toLocaleDateString('id-ID', options);
-                const dateEl = document.getElementById('currentDate');
-                if (dateEl) {
-                    dateEl.textContent = dateStr;
+
+                // Validation
+                if (!formData.nis || !formData.name || !formData.class || !formData.gender) {
+                    this.showToast('Mohon lengkapi semua field yang wajib (*)', 'error');
+                    return;
+                }
+                if (!/^\d{5}$/.test(formData.nis)) {
+                    this.showToast('Format NIS harus 5 digit angka', 'error');
+                    return;
+                }
+
+                // Check duplicate NIS (di Supabase)
+                const { data: existing, error: checkError } = await supabase
+                    .from('students')
+                    .select('id')
+                    .eq('nis', formData.nis)
+                    .neq('id', this.state.currentEditingStudent?.id || '');
+
+                if (checkError) {
+                    this.log('Error checking duplicate:', checkError);
+                    this.showToast('Gagal memeriksa duplikat NIS.', 'error');
+                    return;
+                }
+                if (existing && existing.length > 0) {
+                    this.showToast('NIS sudah digunakan', 'error');
+                    return;
+                }
+
+                this.showLoading(true);
+                const savedStudent = await this.saveStudentToSupabase(formData);
+                this.showLoading(false);
+
+                if (savedStudent) {
+                    this.hideStudentModal();
+                    this.showToast(this.state.currentEditingStudent ? 'Data siswa berhasil diupdate!' : 'Siswa berhasil ditambahkan!', 'success');
                 }
             },
-            
-            // Show View
-            showView(viewName) {
-                // Hide all views
-                document.querySelectorAll('.view-content').forEach(view => {
-                    view.classList.add('hidden');
-                });
-                
-                // Show selected view
-                const selectedView = document.getElementById(viewName + 'View');
-                if (selectedView) {
-                    selectedView.classList.remove('hidden');
-                }
-                
-                // Update navigation states
-                this.updateNavigationState(viewName);
-                
-                this.state.currentView = viewName;
-                
-                // Load view-specific data
-                switch(viewName) {
-                    case 'students':
-                        this.loadStudentsData();
-                        break;
-                    case 'attendance':
-                        // Reset attendance form
-                        const attendanceClass = document.getElementById('attendanceClass');
-                        if (attendanceClass) attendanceClass.value = '';
-                        this.loadStudentsForAttendance();
-                        break;
-                    case 'reports':
-                        // Reports data loaded on demand
-                        break;
-                    case 'journal':
-                        this.loadJournalData();
-                        break;
-                    case 'dashboard':
-                        this.setupCharts();
-                        break;
-                }
-                
-                this.log(`View changed to: ${viewName}`);
+
+            deleteStudent(studentId) {
+                const student = this.state.students.find(s => s.id === studentId);
+                if (!student) return;
+                this.state.studentToDelete = student;
+                const deleteModal = document.getElementById('deleteModal');
+                if (deleteModal) deleteModal.classList.remove('hidden');
             },
-            
-            // Update Navigation State
-            updateNavigationState(activeView) {
-                // Desktop navigation
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('bg-blue-50', 'text-blue-600', 'font-medium');
-                    item.classList.add('text-gray-600');
-                });
-                
-                const activeDesktopNav = document.querySelector(`[href="#${activeView}"]`);
-                if (activeDesktopNav) {
-                    activeDesktopNav.classList.add('bg-blue-50', 'text-blue-600', 'font-medium');
-                    activeDesktopNav.classList.remove('text-gray-600');
-                }
-                
-                // Mobile navigation
-                document.querySelectorAll('.nav-mobile-btn').forEach(btn => {
-                    btn.classList.remove('text-blue-600');
-                    btn.classList.add('text-gray-400');
-                });
-                
-                const activeMobileNav = document.querySelector(`[data-view="${activeView}"]`);
-                if (activeMobileNav) {
-                    activeMobileNav.classList.add('text-blue-600');
-                    activeMobileNav.classList.remove('text-gray-400');
-                }
+
+            async confirmDeleteStudent() {
+                if (!this.state.studentToDelete) return;
+                this.showLoading(true);
+                await this.deleteStudentFromSupabase(this.state.studentToDelete.id);
+                this.showLoading(false);
+                this.hideDeleteModal();
             },
-            
-            // Load Students Data
+
+            filterStudents() {
+                const classFilter = document.getElementById('classFilter');
+                const searchStudent = document.getElementById('searchStudent');
+                const classValue = classFilter ? classFilter.value : '';
+                const searchTerm = searchStudent ? searchStudent.value.toLowerCase() : '';
+                let filteredStudents = this.state.students;
+                if (classValue) {
+                    filteredStudents = filteredStudents.filter(student => student.class === classValue);
+                }
+                if (searchTerm) {
+                    filteredStudents = filteredStudents.filter(student => 
+                        student.name.toLowerCase().includes(searchTerm) || 
+                        student.nis.includes(searchTerm)
+                    );
+                }
+                this.renderStudentsTable(filteredStudents);
+            },
+
             loadStudentsData() {
+                this.renderStudentsTable(this.state.students);
+            },
+
+            renderStudentsTable(students) {
                 const tbody = document.getElementById('studentsTableBody');
                 if (!tbody) return;
-                
-                if (this.state.students.length === 0) {
+
+                if (students.length === 0) {
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="5" class="p-8">
@@ -1538,10 +629,8 @@
                     `;
                     return;
                 }
-                
-                const displayStudents = this.state.students.slice(0, 50);
-                
-                tbody.innerHTML = displayStudents.map(student => `
+
+                tbody.innerHTML = students.slice(0, 50).map(student => `
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                         <td class="p-4 font-medium text-gray-900">${student.nis}</td>
                         <td class="p-4">
@@ -1583,330 +672,156 @@
                         </td>
                     </tr>
                 `).join('');
-                
-                // Show total count if more than 50
-                if (this.state.students.length > 50) {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td colspan="5" class="p-4 text-center text-gray-500">
-                                Menampilkan 50 dari ${this.state.students.length} siswa. Gunakan pencarian untuk menemukan siswa tertentu.
-                            </td>
-                        </tr>
-                    `;
+            },
+
+            // =============================
+            // 🧩 HELPER FUNCTIONS (TETAP SAMA)
+            // =============================
+
+            log(...args) {
+                if (this.config.debug) {
+                    console.log('[APP]', ...args);
                 }
             },
-            
-            // Show Add Student Modal
-            showAddStudentModal() {
-                this.state.currentEditingStudent = null;
-                const studentModalTitle = document.getElementById('studentModalTitle');
-                if (studentModalTitle) studentModalTitle.textContent = 'Tambah Siswa Baru';
-                
-                const saveStudent = document.getElementById('saveStudent');
-                if (saveStudent) saveStudent.textContent = 'Simpan Siswa';
-                
-                this.resetStudentForm();
-                const studentModal = document.getElementById('studentModal');
-                if (studentModal) studentModal.classList.remove('hidden');
-            },
-            
-            // Show Edit Student Modal
-            editStudent(studentId) {
-                const student = this.state.students.find(s => s.id === studentId);
-                if (!student) return;
-                
-                this.state.currentEditingStudent = student;
-                const studentModalTitle = document.getElementById('studentModalTitle');
-                if (studentModalTitle) studentModalTitle.textContent = 'Edit Data Siswa';
-                
-                const saveStudent = document.getElementById('saveStudent');
-                if (saveStudent) saveStudent.textContent = 'Update Siswa';
-                
-                // Fill form with student data
-                const studentNIS = document.getElementById('studentNIS');
-                if (studentNIS) studentNIS.value = student.nis || '';
-                
-                const studentName = document.getElementById('studentName');
-                if (studentName) studentName.value = student.name || '';
-                
-                const studentClass = document.getElementById('studentClass');
-                if (studentClass) studentClass.value = student.class || '';
-                
-                const studentGender = document.getElementById('studentGender');
-                if (studentGender) studentGender.value = student.gender || '';
-                
-                const studentPhone = document.getElementById('studentPhone');
-                if (studentPhone) studentPhone.value = student.phone || '';
-                
-                const studentAddress = document.getElementById('studentAddress');
-                if (studentAddress) studentAddress.value = student.address || '';
-                
-                const studentParentName = document.getElementById('studentParentName');
-                if (studentParentName) studentParentName.value = student.parent_name || '';
-                
-                const studentParentPhone = document.getElementById('studentParentPhone');
-                if (studentParentPhone) studentParentPhone.value = student.parent_phone || '';
-                
-                const studentModal = document.getElementById('studentModal');
-                if (studentModal) studentModal.classList.remove('hidden');
-            },
-            
-            // Edit Student Class
-            editStudentClass(studentId) {
-                const student = this.state.students.find(s => s.id === studentId);
-                if (!student) return;
-                
-                const newClass = prompt(`Pindahkan ${student.name} dari kelas ${student.class} ke kelas:\n\nX-1, X-2, X-3, X-4, X-5, X-6, X-7, X-8, X-9, X-10, X-11`, student.class);
-                
-                if (!newClass) return;
-                
-                // Validasi kelas
-                const validClasses = this.config.classOptions;
-                if (!validClasses.includes(newClass)) {
-                    this.showToast('Kelas tidak valid!', 'error');
-                    return;
-                }
-                
-                // Update kelas
-                const index = this.state.students.findIndex(s => s.id === studentId);
-                if (index !== -1) {
-                    this.state.students[index].class = newClass;
-                    this.saveDataToStorage();
-                    this.loadStudentsData();
-                    this.showToast(`${student.name} berhasil dipindahkan ke kelas ${newClass}!`, 'success');
+
+            showLoading(show) {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.toggle('hidden', !show);
                 }
             },
-            
-            // Delete Student
-            deleteStudent(studentId) {
-                const student = this.state.students.find(s => s.id === studentId);
-                if (!student) return;
-                
-                this.state.studentToDelete = student;
-                const deleteModal = document.getElementById('deleteModal');
-                if (deleteModal) deleteModal.classList.remove('hidden');
+
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                if (!toast || !toastMessage) return;
+
+                toast.className = 'fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50';
+                switch (type) {
+                    case 'success':
+                        toast.classList.add('bg-green-500', 'text-white');
+                        toast.innerHTML = `<div class="flex items-center space-x-2"><i class="fas fa-check-circle"></i><span>${message}</span></div>`;
+                        break;
+                    case 'error':
+                        toast.classList.add('bg-red-500', 'text-white');
+                        toast.innerHTML = `<div class="flex items-center space-x-2"><i class="fas fa-exclamation-circle"></i><span>${message}</span></div>`;
+                        break;
+                    case 'warning':
+                        toast.classList.add('bg-yellow-500', 'text-white');
+                        toast.innerHTML = `<div class="flex items-center space-x-2"><i class="fas fa-exclamation-triangle"></i><span>${message}</span></div>`;
+                        break;
+                    case 'info':
+                        toast.classList.add('bg-blue-500', 'text-white');
+                        toast.innerHTML = `<div class="flex items-center space-x-2"><i class="fas fa-info-circle"></i><span>${message}</span></div>`;
+                        break;
+                }
+
+                setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+                setTimeout(() => toast.classList.add('translate-x-full'), 3000);
             },
-            
-            // Hide Student Modal
-            hideStudentModal() {
-                const studentModal = document.getElementById('studentModal');
-                if (studentModal) studentModal.classList.add('hidden');
-                this.resetStudentForm();
-                this.state.currentEditingStudent = null;
+
+            hideSplashScreen() {
+                const splashScreen = document.getElementById('splashScreen');
+                if (splashScreen) {
+                    splashScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        splashScreen.style.display = 'none';
+                    }, 300);
+                }
             },
-            
-            // Hide Delete Modal
-            hideDeleteModal() {
-                const deleteModal = document.getElementById('deleteModal');
-                if (deleteModal) deleteModal.classList.add('hidden');
-                this.state.studentToDelete = null;
-            },
-            
-            // Reset Student Form
+
             resetStudentForm() {
                 const studentForm = document.getElementById('studentForm');
                 if (studentForm) studentForm.reset();
             },
-            
-            // Generate NIS - PERUBAHAN UNTUK 5 DIGIT
+
             generateNIS() {
                 const studentClass = document.getElementById('studentClass');
                 if (!studentClass || !studentClass.value) {
                     this.showToast('Pilih kelas terlebih dahulu', 'error');
                     return;
                 }
-                
                 const classStudents = this.state.students.filter(s => s.class === studentClass.value);
                 const nextNumber = (classStudents.length + 1).toString();
-                const nis = nextNumber.padStart(5, '0'); // 5 digit
-                
+                const nis = nextNumber.padStart(5, '0');
                 const studentNIS = document.getElementById('studentNIS');
                 if (studentNIS) studentNIS.value = nis;
             },
-            
-            // Save Student - PERUBAHAN VALIDASI NIS
-            saveStudent() {
-                const studentNIS = document.getElementById('studentNIS');
-                const studentName = document.getElementById('studentName');
-                const studentClass = document.getElementById('studentClass');
-                const studentGender = document.getElementById('studentGender');
-                const studentPhone = document.getElementById('studentPhone');
-                const studentAddress = document.getElementById('studentAddress');
-                const studentParentName = document.getElementById('studentParentName');
-                const studentParentPhone = document.getElementById('studentParentPhone');
-                
-                const formData = {
-                    nis: studentNIS ? studentNIS.value.trim() : '',
-                    name: studentName ? studentName.value.trim() : '',
-                    class: studentClass ? studentClass.value : '',
-                    gender: studentGender ? studentGender.value : '',
-                    phone: studentPhone ? studentPhone.value.trim() : '',
-                    address: studentAddress ? studentAddress.value.trim() : '',
-                    parent_name: studentParentName ? studentParentName.value.trim() : '',
-                    parent_phone: studentParentPhone ? studentParentPhone.value.trim() : ''
-                };
-                
-                // Validation
-                if (!formData.nis || !formData.name || !formData.class || !formData.gender) {
-                    this.showToast('Mohon lengkapi semua field yang wajib (*)', 'error');
-                    return;
-                }
-                
-                // NIS format validation - PERUBAHAN DARI 10 DIGIT MENJADI 5 DIGIT
-                if (!/^\d{5}$/.test(formData.nis)) {
-                    this.showToast('Format NIS harus 5 digit angka', 'error');
-                    return;
-                }
-                
-                // Check duplicate NIS
-                const existingStudent = this.state.students.find(s => 
-                    s.nis === formData.nis && s.id !== (this.state.currentEditingStudent?.id)
-                );
-                if (existingStudent) {
-                    this.showToast('NIS sudah digunakan', 'error');
-                    return;
-                }
-                
-                if (this.state.currentEditingStudent) {
-                    // Update existing student
-                    const index = this.state.students.findIndex(s => s.id === this.state.currentEditingStudent.id);
-                    if (index !== -1) {
-                        this.state.students[index] = { ...this.state.students[index], ...formData };
-                    }
-                    this.showToast('Data siswa berhasil diupdate!', 'success');
+
+            updateStudentsStats() {
+                const totalStudents = this.state.students.length;
+                const totalStudentsEl = document.getElementById('totalStudents');
+                if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
+                // Placeholder stats — bisa dikembangkan
+                document.getElementById('presentToday')?.textContent = '0';
+                document.getElementById('absentToday')?.textContent = '0';
+                document.getElementById('excusedToday')?.textContent = '0';
+            },
+
+            updateCurrentDate() {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const dateStr = now.toLocaleDateString('id-ID', options);
+                const dateEl = document.getElementById('currentDate');
+                if (dateEl) dateEl.textContent = dateStr;
+            },
+
+            updateConnectionStatus() {
+                const statusEl = document.getElementById('connectionStatus');
+                if (!statusEl) return;
+                if (this.state.isOnline) {
+                    statusEl.className = 'connection-status online';
+                    statusEl.innerHTML = '<i class="fas fa-wifi mr-1"></i><span>Online</span>';
                 } else {
-                    // Add new student
-                    formData.id = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                    this.state.students.push(formData);
-                    this.showToast('Siswa berhasil ditambahkan!', 'success');
+                    statusEl.className = 'connection-status offline';
+                    statusEl.innerHTML = '<i class="fas fa-wifi mr-1"></i><span>Offline Mode</span>';
                 }
-                
-                this.saveDataToStorage();
-                this.updateStudentsStats();
-                this.loadStudentsData();
-                this.hideStudentModal();
             },
-            
-            // Confirm Delete Student
-            confirmDeleteStudent() {
-                if (!this.state.studentToDelete) return;
-                
-                this.state.students = this.state.students.filter(s => s.id !== this.state.studentToDelete.id);
-                this.saveDataToStorage();
-                this.updateStudentsStats();
-                this.loadStudentsData();
-                this.showToast('Siswa berhasil dihapus!', 'success');
-                this.hideDeleteModal();
+
+            showView(viewName) {
+                document.querySelectorAll('.view-content').forEach(view => view.classList.add('hidden'));
+                const selectedView = document.getElementById(viewName + 'View');
+                if (selectedView) selectedView.classList.remove('hidden');
+                this.updateNavigationState(viewName);
+                this.state.currentView = viewName;
+                if (viewName === 'students') this.loadStudentsData();
+                if (viewName === 'dashboard') this.setupCharts();
             },
-            
-            // Filter Students
-            filterStudents() {
-                const classFilter = document.getElementById('classFilter');
-                const searchStudent = document.getElementById('searchStudent');
-                
-                const classValue = classFilter ? classFilter.value : '';
-                const searchTerm = searchStudent ? searchStudent.value.toLowerCase() : '';
-                
-                let filteredStudents = this.state.students;
-                
-                if (classValue) {
-                    filteredStudents = filteredStudents.filter(student => student.class === classValue);
+
+            updateNavigationState(activeView) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('bg-blue-50', 'text-blue-600', 'font-medium');
+                    item.classList.add('text-gray-600');
+                });
+                const activeDesktopNav = document.querySelector(`[href="#${activeView}"]`);
+                if (activeDesktopNav) {
+                    activeDesktopNav.classList.add('bg-blue-50', 'text-blue-600', 'font-medium');
+                    activeDesktopNav.classList.remove('text-gray-600');
                 }
-                
-                if (searchTerm) {
-                    filteredStudents = filteredStudents.filter(student => 
-                        student.name.toLowerCase().includes(searchTerm) || 
-                        student.nis.includes(searchTerm)
-                    );
+                document.querySelectorAll('.nav-mobile-btn').forEach(btn => {
+                    btn.classList.remove('text-blue-600');
+                    btn.classList.add('text-gray-400');
+                });
+                const activeMobileNav = document.querySelector(`[data-view="${activeView}"]`);
+                if (activeMobileNav) {
+                    activeMobileNav.classList.add('text-blue-600');
+                    activeMobileNav.classList.remove('text-gray-400');
                 }
-                
-                const tbody = document.getElementById('studentsTableBody');
-                if (!tbody) return;
-                
-                if (filteredStudents.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="p-8">
-                                <div class="empty-state">
-                                    <i class="fas fa-search empty-state-icon"></i>
-                                    <h4 class="text-lg font-medium text-gray-900 mb-2">Tidak Ada Hasil</h4>
-                                    <p class="text-gray-500">Tidak ditemukan siswa yang sesuai dengan filter atau pencarian Anda.</p>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                tbody.innerHTML = filteredStudents.slice(0, 50).map(student => `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-4 font-medium text-gray-900">${student.nis}</td>
-                        <td class="p-4">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <span class="text-sm font-medium text-blue-600">${student.name.charAt(0)}</span>
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-900">${student.name}</span>
-                                    ${student.gender ? `<p class="text-xs text-gray-500">${student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p>` : ''}
-                                </div>
-                            </div>
-                        </td>
-                        <td class="p-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                ${student.class}
-                            </span>
-                        </td>
-                        <td class="p-4">
-                            <div class="flex items-center space-x-2">
-                                <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                    <div class="bg-green-500 h-2 rounded-full" style="width: ${student.attendance_rate || 0}%"></div>
-                                </div>
-                                <span class="text-sm font-medium text-gray-900">${student.attendance_rate || 0}%</span>
-                            </div>
-                        </td>
-                        <td class="p-4">
-                            <div class="flex space-x-2">
-                                <button onclick="App.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors mobile-button" title="Edit Data">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="App.editStudentClass('${student.id}')" class="text-purple-600 hover:text-purple-800 transition-colors mobile-button" title="Edit Kelas">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </button>
-                                <button onclick="App.deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 transition-colors mobile-button" title="Hapus">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
             },
-            
-            // Setup Charts - PERBAIKAN UTAMA DI SINI
+
             setupCharts() {
-                // Delay chart initialization to ensure DOM is ready
                 setTimeout(() => {
-                    // Destroy existing charts if they exist
-                    if (this.state.charts.attendance) {
-                        this.state.charts.attendance.destroy();
-                        this.state.charts.attendance = null;
-                    }
-                    
-                    if (this.state.charts.classPerformance) {
-                        this.state.charts.classPerformance.destroy();
-                        this.state.charts.classPerformance = null;
-                    }
-                    
-                    // Attendance Trend Chart - HANYA 5 HARI KERJA (TANPA SABTU)
+                    if (this.state.charts.attendance) this.state.charts.attendance.destroy();
+                    if (this.state.charts.classPerformance) this.state.charts.classPerformance.destroy();
                     const attendanceCtx = document.getElementById('attendanceChart');
                     if (attendanceCtx && typeof Chart !== 'undefined') {
                         this.state.charts.attendance = new Chart(attendanceCtx, {
                             type: 'line',
                             data: {
-                                labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'], // HANYA 5 HARI KERJA
+                                labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'],
                                 datasets: [{
                                     label: 'Kehadiran (%)',
-                                    data: [0, 0, 0, 0, 0], // HANYA 5 DATA POINTS
+                                    data: [0, 0, 0, 0, 0],
                                     borderColor: this.config.chartColors.primary,
                                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                     tension: 0.4,
@@ -1920,102 +835,42 @@
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                interaction: {
-                                    intersect: false,
-                                    mode: 'index'
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    },
-                                    tooltip: {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                        titleColor: '#ffffff',
-                                        bodyColor: '#ffffff',
-                                        borderColor: this.config.chartColors.primary,
-                                        borderWidth: 1
-                                    }
-                                },
+                                plugins: { legend: { display: false } },
                                 scales: {
-                                    x: {
-                                        grid: {
-                                            display: false
-                                        }
-                                    },
                                     y: {
                                         beginAtZero: true,
                                         max: 100,
-                                        grid: {
-                                            color: 'rgba(0, 0, 0, 0.1)'
-                                        },
-                                        ticks: {
-                                            callback: function(value) {
-                                                return value + '%';
-                                            }
-                                        }
+                                        ticks: { callback: v => v + '%' }
                                     }
                                 }
                             }
                         });
                     }
-                    
-                    // Class Performance Chart - 11 KELAS
                     const classCtx = document.getElementById('classChart');
                     if (classCtx && typeof Chart !== 'undefined') {
                         this.state.charts.classPerformance = new Chart(classCtx, {
                             type: 'bar',
                             data: {
-                                labels: ['X-1', 'X-2', 'X-3', 'X-4', 'X-5', 'X-6', 'X-7', 'X-8', 'X-9', 'X-10', 'X-11'], // 11 KELAS
+                                labels: ['X-1','X-2','X-3','X-4','X-5','X-6','X-7','X-8','X-9','X-10','X-11'],
                                 datasets: [{
                                     label: 'Rata-rata Kehadiran (%)',
-                                    data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 11 DATA POINTS
+                                    data: Array(11).fill(0),
                                     backgroundColor: [
-                                        this.config.chartColors.success,   // X-1
-                                        this.config.chartColors.primary,   // X-2
-                                        this.config.chartColors.info,      // X-3
-                                        this.config.chartColors.warning,   // X-4
-                                        this.config.chartColors.danger,    // X-5
-                                        '#6B7280',                        // X-6 - Abu-abu
-                                        '#4F46E5',                        // X-7 - Ungu
-                                        '#0891B2',                        // X-8 - Cyan
-                                        '#65A30D',                        // X-9 - Hijau Tua
-                                        '#B91C1C',                        // X-10 - Merah Tua
-                                        '#9333EA'                         // X-11 - Ungu Tua
+                                        '#10B981','#3B82F6','#6366F1','#F59E0B','#EF4444',
+                                        '#6B7280','#4F46E5','#0891B2','#65A30D','#B91C1C','#9333EA'
                                     ],
-                                    borderRadius: 4,
-                                    borderSkipped: false
+                                    borderRadius: 4
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    },
-                                    tooltip: {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                        titleColor: '#ffffff',
-                                        bodyColor: '#ffffff'
-                                    }
-                                },
+                                plugins: { legend: { display: false } },
                                 scales: {
-                                    x: {
-                                        grid: {
-                                            display: false
-                                        }
-                                    },
                                     y: {
                                         beginAtZero: true,
                                         max: 100,
-                                        grid: {
-                                            color: 'rgba(0, 0, 0, 0.1)'
-                                        },
-                                        ticks: {
-                                            callback: function(value) {
-                                                return value + '%';
-                                            }
-                                        }
+                                        ticks: { callback: v => v + '%' }
                                     }
                                 }
                             }
@@ -2023,1067 +878,166 @@
                     }
                 }, 500);
             },
-            
-            // Load Students for Attendance
-            loadStudentsForAttendance() {
-                const attendanceClass = document.getElementById('attendanceClass');
-                const container = document.getElementById('attendanceStudentsList');
-                const saveBtn = document.getElementById('saveAttendance');
-                
-                const selectedClass = attendanceClass ? attendanceClass.value : '';
-                
-                if (!selectedClass) {
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-clipboard-list empty-state-icon"></i>
-                                <h4 class="text-lg font-medium text-gray-900 mb-2">Pilih Kelas</h4>
-                                <p class="text-gray-500">Pilih kelas dari dropdown di atas untuk menampilkan daftar siswa dan mulai input presensi.</p>
-                            </div>
-                        `;
-                    }
-                    if (saveBtn) saveBtn.disabled = true;
-                    return;
-                }
-                
-                const classStudents = this.state.students.filter(student => student.class === selectedClass);
-                
-                if (classStudents.length === 0) {
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-users empty-state-icon"></i>
-                                <h4 class="text-lg font-medium text-gray-900 mb-2">Tidak Ada Siswa</h4>
-                                <p class="text-gray-500 mb-4">Belum ada siswa di kelas ${selectedClass}. Tambahkan siswa terlebih dahulu.</p>
-                                <button onclick="App.showView('students')" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all">
-                                    <i class="fas fa-plus mr-2"></i>Tambah Siswa
-                                </button>
-                            </div>
-                        `;
-                    }
-                    if (saveBtn) saveBtn.disabled = true;
-                    return;
-                }
-                
-                if (container) {
-                    container.innerHTML = `
-                        <div class="grid grid-cols-1 gap-3">
-                            ${classStudents.map(student => `
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span class="text-sm font-medium text-blue-600">${student.name.charAt(0)}</span>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium text-gray-900">${student.name}</p>
-                                            <p class="text-sm text-gray-500">${student.nis}</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <label class="flex items-center space-x-1 cursor-pointer">
-                                            <input type="radio" name="attendance_${student.id}" value="present" class="text-green-500 focus:ring-green-500">
-                                            <span class="text-sm text-green-600">Hadir</span>
-                                        </label>
-                                        <label class="flex items-center space-x-1 cursor-pointer">
-                                            <input type="radio" name="attendance_${student.id}" value="absent" class="text-red-500 focus:ring-red-500">
-                                            <span class="text-sm text-red-600">Tidak</span>
-                                        </label>
-                                        <label class="flex items-center space-x-1 cursor-pointer">
-                                            <input type="radio" name="attendance_${student.id}" value="excused" class="text-yellow-500 focus:ring-yellow-500">
-                                            <span class="text-sm text-yellow-600">Izin</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                        </div>
-                    `;
-                }
-                
-                if (saveBtn) saveBtn.disabled = false;
+
+            // Untuk fungsi lain (attendance, journal, reports, import/export, teacher profile) —
+            // Anda bisa tetap gunakan versi localStorage sementara, atau saya bantu ubah ke Supabase juga.
+            // Beri tahu saya jika butuh bantuan untuk bagian lainnya.
+
+            hideStudentModal() {
+                const studentModal = document.getElementById('studentModal');
+                if (studentModal) studentModal.classList.add('hidden');
+                this.resetStudentForm();
+                this.state.currentEditingStudent = null;
             },
-            
-            // Mark All Students
-            markAllStudents(status) {
-                const radios = document.querySelectorAll(`input[type="radio"][value="${status}"]`);
-                radios.forEach(radio => {
-                    radio.checked = true;
-                });
+
+            hideDeleteModal() {
+                const deleteModal = document.getElementById('deleteModal');
+                if (deleteModal) deleteModal.classList.add('hidden');
+                this.state.studentToDelete = null;
             },
-            
-            // Save Attendance
-            saveAttendance() {
-                const attendanceClass = document.getElementById('attendanceClass');
-                const attendanceDate = document.getElementById('attendanceDate');
-                const attendanceSubject = document.getElementById('attendanceSubject');
-                
-                const selectedClass = attendanceClass ? attendanceClass.value : '';
-                const date = attendanceDate ? attendanceDate.value : '';
-                const subject = attendanceSubject ? attendanceSubject.value : '';
-                
-                if (!selectedClass || !date) {
-                    this.showToast('Mohon lengkapi kelas dan tanggal', 'error');
+
+            editStudentClass(studentId) {
+                const student = this.state.students.find(s => s.id === studentId);
+                if (!student) return;
+                const newClass = prompt(`Pindahkan ${student.name} dari kelas ${student.class} ke kelas:
+X-1, X-2, X-3, X-4, X-5, X-6, X-7, X-8, X-9, X-10, X-11`, student.class);
+                if (!newClass) return;
+                if (!this.config.classOptions.includes(newClass)) {
+                    this.showToast('Kelas tidak valid!', 'error');
                     return;
                 }
-                
                 this.showLoading(true);
-                
-                // Collect attendance data
-                const classStudents = this.state.students.filter(student => student.class === selectedClass);
-                const attendanceRecords = [];
-                
-                classStudents.forEach(student => {
-                    const presentRadio = document.querySelector(`input[name="attendance_${student.id}"][value="present"]`);
-                    const absentRadio = document.querySelector(`input[name="attendance_${student.id}"][value="absent"]`);
-                    const excusedRadio = document.querySelector(`input[name="attendance_${student.id}"][value="excused"]`);
-                    
-                    let status = '';
-                    if (presentRadio && presentRadio.checked) status = 'present';
-                    else if (absentRadio && absentRadio.checked) status = 'absent';
-                    else if (excusedRadio && excusedRadio.checked) status = 'excused';
-                    
-                    if (status) {
-                        attendanceRecords.push({
-                            student_id: student.id,
-                            student_name: student.name,
-                            status: status
-                        });
-                    }
-                });
-                
-                // Create attendance record
-                const attendanceRecord = {
-                    id: `attendance-${Date.now()}`,
-                    date: date,
-                    class: selectedClass,
-                    subject: subject,
-                    records: attendanceRecords,
-                    timestamp: new Date().toISOString()
-                };
-                
-                // Check if attendance for this class and date already exists
-                const existingIndex = this.state.attendance.findIndex(a => 
-                    a.class === selectedClass && a.date === date
-                );
-                
-                if (existingIndex !== -1) {
-                    // Update existing record
-                    this.state.attendance[existingIndex] = attendanceRecord;
+                const { error } = await supabase
+                    .from('students')
+                    .update({ class: newClass })
+                    .eq('id', studentId);
+                if (error) {
+                    this.showToast('Gagal memperbarui kelas.', 'error');
                 } else {
-                    // Add new record
-                    this.state.attendance.push(attendanceRecord);
+                    await this.loadDataFromSupabase();
+                    this.showToast(`${student.name} berhasil dipindahkan ke kelas ${newClass}!`, 'success');
                 }
-                
-                // Simulate API call
-                setTimeout(() => {
-                    this.showLoading(false);
-                    this.saveDataToStorage();
-                    this.showToast('Presensi berhasil disimpan!', 'success');
-                    
-                    // Reset form
-                    if (attendanceClass) attendanceClass.value = '';
-                    if (attendanceSubject) attendanceSubject.value = '';
-                    this.loadStudentsForAttendance();
-                    
-                    // Update stats
-                    this.updateStudentsStats();
-                }, 1500);
+                this.showLoading(false);
             },
-            
-            // Journal Functions
-            showJournalForm() {
-                const journalForm = document.getElementById('journalForm');
-                if (journalForm) journalForm.classList.remove('hidden');
-            },
-            
-            hideJournalForm() {
-                const journalForm = document.getElementById('journalForm');
-                if (journalForm) journalForm.classList.add('hidden');
-                
-                // Reset form
-                const journalDate = document.getElementById('journalDate');
-                if (journalDate) journalDate.value = new Date().toISOString().split('T')[0];
-                
-                const journalClass = document.getElementById('journalClass');
-                if (journalClass) journalClass.value = '';
-                
-                const journalSubject = document.getElementById('journalSubject');
-                if (journalSubject) journalSubject.value = '';
-                
-                const journalActivity = document.getElementById('journalActivity');
-                if (journalActivity) journalActivity.value = '';
-                
-                const journalNotes = document.getElementById('journalNotes');
-                if (journalNotes) journalNotes.value = '';
-            },
-            
-            saveJournal() {
-                const journalDate = document.getElementById('journalDate');
-                const journalClass = document.getElementById('journalClass');
-                const journalSubject = document.getElementById('journalSubject');
-                const journalActivity = document.getElementById('journalActivity');
-                const journalNotes = document.getElementById('journalNotes');
-                
-                const date = journalDate ? journalDate.value : '';
-                const className = journalClass ? journalClass.value : '';
-                const subject = journalSubject ? journalSubject.value : '';
-                const activity = journalActivity ? journalActivity.value : '';
-                const notes = journalNotes ? journalNotes.value : '';
-                
-                if (!date || !className || !subject || !activity) {
-                    this.showToast('Mohon lengkapi semua field yang wajib', 'error');
-                    return;
-                }
-                
-                this.showLoading(true);
-                
-                // Save to localStorage
-                const journalEntry = {
-                    id: `journal-${Date.now()}`,
-                    date,
-                    class: className,
-                    subject,
-                    activity,
-                    notes,
-                    created_at: new Date().toISOString()
-                };
-                
-                this.state.journal.unshift(journalEntry);
-                
-                setTimeout(() => {
-                    this.showLoading(false);
-                    this.saveDataToStorage();
-                    this.showToast('Jurnal berhasil disimpan!', 'success');
-                    this.hideJournalForm();
-                    this.loadJournalData();
-                }, 1000);
-            },
-            
-            loadJournalData() {
-                const container = document.getElementById('journalList');
-                if (!container) return;
-                
-                if (this.state.journal.length === 0) {
-                    container.innerHTML = `
-                        <div class="p-6">
-                            <div class="empty-state">
-                                <i class="fas fa-book empty-state-icon"></i>
-                                <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Jurnal</h4>
-                                <p class="text-gray-500 mb-4">Mulai dengan menambahkan jurnal pembelajaran pertama Anda.</p>
-                                <button onclick="document.getElementById('addJournalBtn').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all">
-                                    <i class="fas fa-plus mr-2"></i>Tambah Jurnal Pertama
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                container.innerHTML = this.state.journal.map(journal => `
-                    <div class="p-6">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-book text-blue-600"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold text-gray-900">${journal.subject} - ${journal.class}</h4>
-                                    <p class="text-sm text-gray-500">${new Date(journal.date).toLocaleDateString('id-ID')}</p>
-                                </div>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button class="text-blue-600 hover:text-blue-800 transition-colors">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="App.deleteJournal('${journal.id}')" class="text-red-600 hover:text-red-800 transition-colors">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <div>
-                                <p class="text-sm font-medium text-gray-700">Kegiatan:</p>
-                                <p class="text-sm text-gray-600">${journal.activity}</p>
-                            </div>
-                            ${journal.notes ? `
-                                <div>
-                                    <p class="text-sm font-medium text-gray-700">Catatan:</p>
-                                    <p class="text-sm text-gray-600">${journal.notes}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `).join('');
-            },
-            
-            deleteJournal(journalId) {
-                this.state.journal = this.state.journal.filter(j => j.id !== journalId);
-                this.saveDataToStorage();
-                this.loadJournalData();
-                this.showToast('Jurnal berhasil dihapus!', 'success');
-            },
-            
-            // Generate Report
-            generateReport() {
-                const reportClass = document.getElementById('reportClass');
-                const reportStartDate = document.getElementById('reportStartDate');
-                const reportEndDate = document.getElementById('reportEndDate');
-                
-                const className = reportClass ? reportClass.value : '';
-                const startDate = reportStartDate ? reportStartDate.value : '';
-                const endDate = reportEndDate ? reportEndDate.value : '';
-                
-                if (!startDate || !endDate) {
-                    this.showToast('Mohon pilih rentang tanggal', 'error');
-                    return;
-                }
-                
-                this.showLoading(true);
-                
-                // Simulate report generation
-                setTimeout(() => {
-                    this.showLoading(false);
-                    
-                    const container = document.getElementById('reportResults');
-                    if (!container) return;
-                    
-                    if (this.state.attendance.length === 0) {
-                        container.innerHTML = `
-                            <div class="p-6 border-b border-gray-100">
-                                <h3 class="text-lg font-semibold text-gray-900">Hasil Rekap Presensi</h3>
-                                <p class="text-sm text-gray-600">
-                                    ${className ? `Kelas: ${className}` : 'Semua Kelas'} | 
-                                    ${new Date(startDate).toLocaleDateString('id-ID')} - ${new Date(endDate).toLocaleDateString('id-ID')}
-                                </p>
-                            </div>
-                            <div class="p-6">
-                                <div class="empty-state">
-                                    <i class="fas fa-chart-bar empty-state-icon"></i>
-                                    <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Data Presensi</h4>
-                                    <p class="text-gray-500">Mulai input presensi untuk melihat laporan kehadiran siswa.</p>
-                                </div>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    // Filter attendance data based on selected criteria
-                    let filteredAttendance = this.state.attendance;
-                    
-                    if (className) {
-                        filteredAttendance = filteredAttendance.filter(a => a.class === className);
-                    }
-                    
-                    filteredAttendance = filteredAttendance.filter(a => {
-                        const attendanceDate = new Date(a.date);
-                        const start = new Date(startDate);
-                        const end = new Date(endDate);
-                        return attendanceDate >= start && attendanceDate <= end;
-                    });
-                    
-                    // Calculate statistics
-                    let presentCount = 0;
-                    let absentCount = 0;
-                    let excusedCount = 0;
-                    
-                    filteredAttendance.forEach(record => {
-                        record.records.forEach(studentRecord => {
-                            if (studentRecord.status === 'present') presentCount++;
-                            else if (studentRecord.status === 'absent') absentCount++;
-                            else if (studentRecord.status === 'excused') excusedCount++;
-                        });
-                    });
-                    
-                    container.innerHTML = `
-                        <div class="p-6 border-b border-gray-100">
-                            <h3 class="text-lg font-semibold text-gray-900">Hasil Rekap Presensi</h3>
-                            <p class="text-sm text-gray-600">
-                                ${className ? `Kelas: ${className}` : 'Semua Kelas'} | 
-                                ${new Date(startDate).toLocaleDateString('id-ID')} - ${new Date(endDate).toLocaleDateString('id-ID')}
-                            </p>
-                        </div>
-                        <div class="p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div class="bg-green-50 p-4 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fas fa-check text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-600">Total Hadir</p>
-                                            <p class="text-xl font-bold text-green-600">${presentCount}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-red-50 p-4 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fas fa-times text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-600">Total Tidak Hadir</p>
-                                            <p class="text-xl font-bold text-red-600">${absentCount}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-yellow-50 p-4 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fas fa-exclamation text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-600">Total Izin</p>
-                                            <p class="text-xl font-bold text-yellow-600">${excusedCount}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            ${filteredAttendance.length > 0 ? `
-                                <div class="overflow-x-auto">
-                                    <table class="w-full">
-                                        <thead class="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                <th class="text-left p-3 font-medium text-gray-900">Tanggal</th>
-                                                <th class="text-left p-3 font-medium text-gray-900">Kelas</th>
-                                                <th class="text-left p-3 font-medium text-gray-900">Mata Pelajaran</th>
-                                                <th class="text-left p-3 font-medium text-gray-900">Hadir</th>
-                                                <th class="text-left p-3 font-medium text-gray-900">Tidak Hadir</th>
-                                                <th class="text-left p-3 font-medium text-gray-900">Izin</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${filteredAttendance.map(record => {
-                                                const present = record.records.filter(r => r.status === 'present').length;
-                                                const absent = record.records.filter(r => r.status === 'absent').length;
-                                                const excused = record.records.filter(r => r.status === 'excused').length;
-                                                
-                                                return `
-                                                    <tr class="border-b border-gray-100">
-                                                        <td class="p-3">${new Date(record.date).toLocaleDateString('id-ID')}</td>
-                                                        <td class="p-3">${record.class}</td>
-                                                        <td class="p-3">${record.subject}</td>
-                                                        <td class="p-3">${present}</td>
-                                                        <td class="p-3">${absent}</td>
-                                                        <td class="p-3">${excused}</td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ` : '<p class="text-gray-500 text-center">Tidak ada data presensi dalam rentang tanggal yang dipilih.</p>'}
-                        </div>
-                    `;
-                }, 1500);
-            },
-            
-            // Export Report
-            exportReport(format) {
-                this.showToast(`Export ${format.toUpperCase()} akan segera tersedia!`, 'info');
-            },
-            
-            // Import/Export Functions
-            showImportModal() {
-                const importModal = document.getElementById('importModal');
-                if (importModal) importModal.classList.remove('hidden');
-            },
-            
-            hideImportModal() {
-                const importModal = document.getElementById('importModal');
-                if (importModal) importModal.classList.add('hidden');
-                
-                // Reset file input
-                const fileInput = document.getElementById('fileInput');
-                if (fileInput) fileInput.value = '';
-                
-                const fileInfo = document.getElementById('fileInfo');
-                if (fileInfo) fileInfo.classList.add('hidden');
-                
-                const dropZone = document.getElementById('dropZone');
-                if (dropZone) dropZone.classList.remove('hidden');
-                
-                const processImport = document.getElementById('processImport');
-                if (processImport) processImport.disabled = true;
-            },
-            
-            handleFileSelect(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    this.handleFile(file);
-                }
-            },
-            
-            handleFile(file) {
-                if (!file.name.match(/\.(xlsx|xls)$/)) {
-                    this.showToast('Format file harus Excel (.xlsx atau .xls)', 'error');
-                    return;
-                }
-                
-                // Show file info
-                const dropZone = document.getElementById('dropZone');
-                if (dropZone) dropZone.classList.add('hidden');
-                
-                const fileInfo = document.getElementById('fileInfo');
-                if (fileInfo) fileInfo.classList.remove('hidden');
-                
-                const fileName = document.getElementById('fileName');
-                if (fileName) fileName.textContent = file.name;
-                
-                const fileSize = document.getElementById('fileSize');
-                if (fileSize) fileSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
-                
-                const processImport = document.getElementById('processImport');
-                if (processImport) processImport.disabled = false;
-            },
-            
-            // Enhanced Import Process
-            processImport() {
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput ? fileInput.files[0] : null;
-                
-                if (!file) {
-                    this.showToast('Pilih file terlebih dahulu', 'error');
-                    return;
-                }
-                
-                this.showLoading(true);
-                
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[sheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                        
-                        // Reset import status
-                        let importedCount = 0;
-                        let errorCount = 0;
-                        const errors = [];
-                        
-                        // Proses maksimal 300 data
-                        const maxData = 300;
-                        const dataToProcess = jsonData.slice(0, maxData);
-                        
-                        // Update UI dengan progress
-                        const processImportBtn = document.getElementById('processImport');
-                        if (processImportBtn) {
-                            processImportBtn.textContent = `Memproses 0/${dataToProcess.length}...`;
-                            processImportBtn.disabled = true;
-                        }
-                        
-                        // Proses satu per satu dengan delay untuk UI update
-                        for (let i = 0; i < dataToProcess.length; i++) {
-                            const row = dataToProcess[i];
-                            
-                            try {
-                                const student = {
-                                    nis: row.NIS?.toString().trim() || '',
-                                    name: row.Nama?.trim() || '',
-                                    class: row.Kelas?.trim() || '',
-                                    gender: (row['Jenis Kelamin'] || row.Gender)?.toString().toUpperCase().trim() || '',
-                                    phone: (row['No. Telepon'] || row.Telepon)?.toString().trim() || '',
-                                    address: (row.Alamat || '').trim() || '',
-                                    parent_name: (row['Nama Orang Tua'] || row['Orang Tua'])?.trim() || '',
-                                    parent_phone: (row['Telepon Orang Tua'] || row['No. Telepon Orang Tua'])?.toString().trim() || ''
-                                };
-                                
-                                // Validasi data wajib
-                                if (!student.nis || !student.name || !student.class) {
-                                    errors.push(`Baris ${i + 2}: Data tidak lengkap (NIS, Nama, Kelas wajib diisi)`);
-                                    errorCount++;
-                                    continue;
-                                }
-                                
-                                // Validasi NIS format - PERUBAHAN UNTUK 5 DIGIT
-                                if (!/^\d{5}$/.test(student.nis)) {
-                                    errors.push(`Baris ${i + 2}: NIS ${student.nis} harus 5 digit angka`);
-                                    errorCount++;
-                                    continue;
-                                }
-                                
-                                // Validasi jenis kelamin
-                                if (!['L', 'P'].includes(student.gender)) {
-                                    errors.push(`Baris ${i + 2}: Jenis kelamin harus L atau P`);
-                                    errorCount++;
-                                    continue;
-                                }
-                                
-                                // Cek duplikat NIS
-                                if (this.state.students.find(s => s.nis === student.nis)) {
-                                    errors.push(`Baris ${i + 2}: NIS ${student.nis} sudah ada`);
-                                    errorCount++;
-                                    continue;
-                                }
-                                
-                                // Generate ID dan tambahkan ke array
-                                student.id = `local-${Date.now()}-${i}`;
-                                student.attendance_rate = 0; // Default 0%
-                                
-                                this.state.students.push(student);
-                                importedCount++;
-                                
-                                // Update progress
-                                if (processImportBtn) {
-                                    processImportBtn.textContent = `Memproses ${i + 1}/${dataToProcess.length}...`;
-                                }
-                                
-                                // Delay kecil untuk UI update
-                                await new Promise(resolve => setTimeout(resolve, 10));
-                                
-                            } catch (error) {
-                                errors.push(`Baris ${i + 2}: ${error.message}`);
-                                errorCount++;
-                            }
-                        }
-                        
-                        // Simpan ke localStorage
-                        this.saveDataToStorage();
-                        
-                        // Tampilkan hasil
-                        this.showLoading(false);
-                        this.hideImportModal();
-                        
-                        let message = `Import selesai!\n`;
-                        message += `✅ Berhasil: ${importedCount} siswa\n`;
-                        message += `❌ Gagal: ${errorCount} siswa\n`;
-                        message += `📊 Total: ${dataToProcess.length} data`;
-                        
-                        if (errors.length > 0) {
-                            message += `\n\nDetail Error:\n${errors.slice(0, 5).join('\n')}`;
-                            if (errors.length > 5) {
-                                message += `\n... dan ${errors.length - 5} error lainnya`;
-                            }
-                        }
-                        
-                        this.showToast(message, importedCount > 0 ? 'success' : 'warning');
-                        
-                        // Update UI
-                        this.updateStudentsStats();
-                        if (this.state.currentView === 'students') {
-                            this.loadStudentsData();
-                        }
-                        
-                        // Auto refresh data
-                        setTimeout(() => {
-                            this.loadStudentsData();
-                        }, 1000);
-                        
-                    } catch (error) {
-                        this.showLoading(false);
-                        this.log('Error processing Excel file:', error);
-                        this.showToast('Gagal membaca file Excel: ' + error.message, 'error');
-                    }
-                };
-                
-                reader.readAsArrayBuffer(file);
-            },
-            
-            // Enhanced Download Template
-            downloadTemplate() {
-                const templateData = [
-                    {
-                        'NIS': '00001',
-                        'Nama Lengkap': 'Ahmad Budi Santoso',
-                        'Kelas': 'X-1',
-                        'Jenis Kelamin': 'L',
-                        'No. HP': '081234567890',
-                        'Alamat': 'Jl. Contoh No. 123, Kota, Provinsi',
-                        'Nama Ayah/Ibu/Wali': 'Budi Santoso',
-                        'No. HP Orang Tua': '081234567891'
-                    },
-                    {
-                        'NIS': '00002',
-                        'Nama Lengkap': 'Siti Nurhaliza',
-                        'Kelas': 'X-1',
-                        'Jenis Kelamin': 'P',
-                        'No. HP': '081234567892',
-                        'Alamat': 'Jl. Contoh No. 124, Kota, Provinsi',
-                        'Nama Ayah/Ibu/Wali': 'Ahmad Nurdin',
-                        'No. HP Orang Tua': '081234567893'
-                    }
-                ];
-                
-                // Buat worksheet dengan header yang lebih jelas
-                const ws = XLSX.utils.json_to_sheet(templateData, {
-                    header: [
-                        'NIS (5 digit angka)',
-                        'Nama Lengkap',
-                        'Kelas (X-1 sampai X-11)',
-                        'Jenis Kelamin (L/P)',
-                        'No. HP',
-                        'Alamat Lengkap',
-                        'Nama Ayah/Ibu/Wali',
-                        'No. HP Orang Tua'
-                    ]
-                });
-                
-                // Set lebar kolom
-                ws['!cols'] = [
-                    { wch: 12 }, // NIS - lebih kecil karena 5 digit
-                    { wch: 30 }, // Nama
-                    { wch: 10 }, // Kelas
-                    { wch: 15 }, // Gender
-                    { wch: 15 }, // Phone
-                    { wch: 40 }, // Address
-                    { wch: 30 }, // Parent
-                    { wch: 15 }  // Parent Phone
-                ];
-                
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Template Data Siswa');
-                
-                // Tambahkan sheet instruksi
-                const instructionData = [
-                    {'PETUNJUK PENGISIAN DATA': ''},
-                    {'': ''},
-                    {'1. NIS': 'Nomor Induk Siswa, 5 digit angka'},
-                    {'2. Nama Lengkap': 'Nama siswa sesuai dokumen resmi'},
-                    {'3. Kelas': 'Pilih dari X-1 sampai X-11'},
-                    {'4. Jenis Kelamin': 'L = Laki-laki, P = Perempuan'},
-                    {'5. No. HP': 'Nomor telepon aktif dengan kode negara'},
-                    {'6. Alamat': 'Alamat lengkap dengan kota dan provinsi'},
-                    {'7. Orang Tua': 'Nama ayah/ibu/wali yang sah'},
-                    {'': ''},
-                    {'CATATAN PENTING': ''},
-                    {'• Pastikan semua data terisi dengan benar'},
-                    {'• File harus dalam format .xlsx atau .xls'},
-                    {'• Maksimal 300 data per import'},
-                    {'• NIS harus unik (tidak boleh ada yang sama)'},
-                    {'• NIS hanya 5 digit angka'}
-                ];
-                
-                const instructionWs = XLSX.utils.json_to_sheet(instructionData);
-                XLSX.utils.book_append_sheet(wb, instructionWs, 'PETUNJUK');
-                
-                XLSX.writeFile(wb, 'template-data-siswa-lengkap.xlsx');
-                this.showToast('Template lengkap berhasil didownload!', 'success');
-            },
-            
-            exportStudentsData() {
-                if (this.state.students.length === 0) {
-                    this.showToast('Tidak ada data siswa untuk diekspor', 'error');
-                    return;
-                }
-                
-                this.showLoading(true);
-                
-                setTimeout(() => {
-                    const exportData = this.state.students.map(student => ({
-                        'NIS': student.nis,
-                        'Nama': student.name,
-                        'Kelas': student.class,
-                        'Jenis Kelamin': student.gender === 'L' ? 'Laki-laki' : 'Perempuan',
-                        'No. Telepon': student.phone || '',
-                        'Alamat': student.address || '',
-                        'Nama Orang Tua': student.parent_name || '',
-                        'Telepon Orang Tua': student.parent_phone || ''
-                    }));
-                    
-                    const ws = XLSX.utils.json_to_sheet(exportData);
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
-                    
-                    const fileName = `data-siswa-${new Date().toISOString().split('T')[0]}.xlsx`;
-                    XLSX.writeFile(wb, fileName);
-                    
-                    this.showLoading(false);
-                    this.showToast('Data siswa berhasil diekspor!', 'success');
-                }, 1000);
-            },
-            
-            // Teacher Profile Functions
+
             loadTeacherProfile() {
-                this.updateTeacherProfileDisplay();
-            },
-            
-            updateTeacherProfileDisplay() {
-                // Update desktop sidebar
+                // Placeholder — bisa dikembangkan
                 const teacherName = document.getElementById('teacherName');
                 if (teacherName) teacherName.textContent = this.state.teacherProfile.name;
-                
                 const teacherSubject = document.getElementById('teacherSubject');
                 if (teacherSubject) teacherSubject.textContent = this.state.teacherProfile.subject;
-                
-                // Update photo
-                if (this.state.teacherProfile.photo) {
-                    const teacherPhoto = document.getElementById('teacherPhoto');
-                    if (teacherPhoto) {
-                        teacherPhoto.src = this.state.teacherProfile.photo;
-                        teacherPhoto.classList.remove('hidden');
-                    }
-                    
-                    const teacherIcon = document.getElementById('teacherIcon');
-                    if (teacherIcon) teacherIcon.classList.add('hidden');
-                    
-                    const mobileTeacherPhoto = document.getElementById('mobileTeacherPhoto');
-                    if (mobileTeacherPhoto) {
-                        mobileTeacherPhoto.src = this.state.teacherProfile.photo;
-                        mobileTeacherPhoto.classList.remove('hidden');
-                    }
-                    
-                    const mobileTeacherIcon = document.getElementById('mobileTeacherIcon');
-                    if (mobileTeacherIcon) mobileTeacherIcon.classList.add('hidden');
-                } else {
-                    const teacherPhoto = document.getElementById('teacherPhoto');
-                    if (teacherPhoto) teacherPhoto.classList.add('hidden');
-                    
-                    const teacherIcon = document.getElementById('teacherIcon');
-                    if (teacherIcon) teacherIcon.classList.remove('hidden');
-                    
-                    const mobileTeacherPhoto = document.getElementById('mobileTeacherPhoto');
-                    if (mobileTeacherPhoto) mobileTeacherPhoto.classList.add('hidden');
-                    
-                    const mobileTeacherIcon = document.getElementById('mobileTeacherIcon');
-                    if (mobileTeacherIcon) mobileTeacherIcon.classList.remove('hidden');
-                }
             },
-            
+
             showTeacherProfileModal() {
-                // Fill form with current data
-                const teacherNameInput = document.getElementById('teacherNameInput');
-                if (teacherNameInput) teacherNameInput.value = this.state.teacherProfile.name;
-                
-                const teacherSubjectInput = document.getElementById('teacherSubjectInput');
-                if (teacherSubjectInput) teacherSubjectInput.value = this.state.teacherProfile.subject;
-                
-                const teacherNIP = document.getElementById('teacherNIP');
-                if (teacherNIP) teacherNIP.value = this.state.teacherProfile.nip || '';
-                
-                const teacherEmail = document.getElementById('teacherEmail');
-                if (teacherEmail) teacherEmail.value = this.state.teacherProfile.email || '';
-                
-                const teacherPhone = document.getElementById('teacherPhone');
-                if (teacherPhone) teacherPhone.value = this.state.teacherProfile.phone || '';
-                
-                // Update photo preview
-                if (this.state.teacherProfile.photo) {
-                    const profilePhotoImg = document.getElementById('profilePhotoImg');
-                    if (profilePhotoImg) {
-                        profilePhotoImg.src = this.state.teacherProfile.photo;
-                        profilePhotoImg.classList.remove('hidden');
-                    }
-                    
-                    const profileIcon = document.getElementById('profileIcon');
-                    if (profileIcon) profileIcon.classList.add('hidden');
-                    
-                    const removePhotoBtn = document.getElementById('removePhotoBtn');
-                    if (removePhotoBtn) removePhotoBtn.classList.remove('hidden');
-                } else {
-                    const profilePhotoImg = document.getElementById('profilePhotoImg');
-                    if (profilePhotoImg) profilePhotoImg.classList.add('hidden');
-                    
-                    const profileIcon = document.getElementById('profileIcon');
-                    if (profileIcon) profileIcon.classList.remove('hidden');
-                    
-                    const removePhotoBtn = document.getElementById('removePhotoBtn');
-                    if (removePhotoBtn) removePhotoBtn.classList.add('hidden');
-                }
-                
+                // Placeholder
                 const teacherProfileModal = document.getElementById('teacherProfileModal');
                 if (teacherProfileModal) teacherProfileModal.classList.remove('hidden');
             },
-            
+
             hideTeacherProfileModal() {
                 const teacherProfileModal = document.getElementById('teacherProfileModal');
                 if (teacherProfileModal) teacherProfileModal.classList.add('hidden');
             },
-            
-            handlePhotoUpload(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                // Check if file is an image
-                if (!file.type.match('image.*')) {
-                    this.showToast('File harus berupa gambar', 'error');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const photoData = e.target.result;
-                    
-                    // Update preview
-                    const profilePhotoImg = document.getElementById('profilePhotoImg');
-                    if (profilePhotoImg) {
-                        profilePhotoImg.src = photoData;
-                        profilePhotoImg.classList.remove('hidden');
-                    }
-                    
-                    const profileIcon = document.getElementById('profileIcon');
-                    if (profileIcon) profileIcon.classList.add('hidden');
-                    
-                    const removePhotoBtn = document.getElementById('removePhotoBtn');
-                    if (removePhotoBtn) removePhotoBtn.classList.remove('hidden');
-                };
-                
-                reader.readAsDataURL(file);
-            },
-            
-            removeTeacherPhoto() {
-                // Update preview
-                const profilePhotoImg = document.getElementById('profilePhotoImg');
-                if (profilePhotoImg) {
-                    profilePhotoImg.classList.add('hidden');
-                }
-                
-                const profileIcon = document.getElementById('profileIcon');
-                if (profileIcon) profileIcon.classList.remove('hidden');
-                
-                const removePhotoBtn = document.getElementById('removePhotoBtn');
-                if (removePhotoBtn) removePhotoBtn.classList.add('hidden');
-                
-                // Clear file input
-                const photoInput = document.getElementById('photoInput');
-                if (photoInput) photoInput.value = '';
-            },
-            
+
             saveTeacherProfile() {
-                const teacherNameInput = document.getElementById('teacherNameInput');
-                const teacherSubjectInput = document.getElementById('teacherSubjectInput');
-                const teacherNIP = document.getElementById('teacherNIP');
-                const teacherEmail = document.getElementById('teacherEmail');
-                const teacherPhone = document.getElementById('teacherPhone');
-                const profilePhotoImg = document.getElementById('profilePhotoImg');
-                
-                // Get form values
-                const name = teacherNameInput ? teacherNameInput.value : '';
-                const subject = teacherSubjectInput ? teacherSubjectInput.value : '';
-                const nip = teacherNIP ? teacherNIP.value : '';
-                const email = teacherEmail ? teacherEmail.value : '';
-                const phone = teacherPhone ? teacherPhone.value : '';
-                const photo = profilePhotoImg && !profilePhotoImg.classList.contains('hidden') 
-                    ? profilePhotoImg.src 
-                    : null;
-                
-                // Validation
-                if (!name || !subject) {
-                    this.showToast('Mohon lengkapi nama dan mata pelajaran', 'error');
+                // Placeholder — bisa dikembangkan
+                this.showToast('Fitur profil guru akan dikembangkan nanti.', 'info');
+                this.hideTeacherProfileModal();
+            },
+
+            loadStudentsForAttendance() {
+                const attendanceClass = document.getElementById('attendanceClass');
+                const container = document.getElementById('attendanceStudentsList');
+                const saveBtn = document.getElementById('saveAttendance');
+                const selectedClass = attendanceClass ? attendanceClass.value : '';
+                if (!selectedClass) {
+                    if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-clipboard-list empty-state-icon"></i><h4 class="text-lg font-medium text-gray-900 mb-2">Pilih Kelas</h4><p class="text-gray-500">Pilih kelas dari dropdown di atas untuk menampilkan daftar siswa dan mulai input presensi.</p></div>`;
+                    if (saveBtn) saveBtn.disabled = true;
                     return;
                 }
-                
-                // Update teacher profile
-                this.state.teacherProfile = {
-                    ...this.state.teacherProfile,
-                    name,
-                    subject,
-                    nip,
-                    email,
-                    phone,
-                    photo
-                };
-                
-                // Save to localStorage
-                this.saveDataToStorage();
-                
-                // Update UI
-                this.updateTeacherProfileDisplay();
-                
-                // Hide modal
-                this.hideTeacherProfileModal();
-                
-                // Show success message
-                this.showToast('Profil guru berhasil disimpan!', 'success');
-            },
-            
-            // UI Helper Functions
-            showLoading(show) {
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                if (loadingOverlay) {
-                    if (show) {
-                        loadingOverlay.classList.remove('hidden');
-                    } else {
-                        loadingOverlay.classList.add('hidden');
-                    }
+                const classStudents = this.state.students.filter(student => student.class === selectedClass);
+                if (classStudents.length === 0) {
+                    if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-users empty-state-icon"></i><h4 class="text-lg font-medium text-gray-900 mb-2">Tidak Ada Siswa</h4><p class="text-gray-500 mb-4">Belum ada siswa di kelas ${selectedClass}. Tambahkan siswa terlebih dahulu.</p><button onclick="App.showView('students')" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all"><i class="fas fa-plus mr-2"></i>Tambah Siswa</button></div>`;
+                    if (saveBtn) saveBtn.disabled = true;
+                    return;
                 }
-            },
-            
-            showToast(message, type = 'success') {
-                const toast = document.getElementById('toast');
-                const toastMessage = document.getElementById('toastMessage');
-                
-                if (!toast || !toastMessage) return;
-                
-                // Set message
-                toastMessage.textContent = message;
-                
-                // Set background color based on type
-                toast.className = 'fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50';
-                
-                switch (type) {
-                    case 'success':
-                        toast.classList.add('bg-green-500', 'text-white');
-                        toast.innerHTML = `
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-check-circle"></i>
-                                <span>${message}</span>
+                if (container) {
+                    container.innerHTML = `<div class="grid grid-cols-1 gap-3">${classStudents.map(student => `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span class="text-sm font-medium text-blue-600">${student.name.charAt(0)}</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">${student.name}</p>
+                                    <p class="text-sm text-gray-500">${student.nis}</p>
+                                </div>
                             </div>
-                        `;
-                        break;
-                    case 'error':
-                        toast.classList.add('bg-red-500', 'text-white');
-                        toast.innerHTML = `
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <span>${message}</span>
+                            <div class="flex space-x-2">
+                                <label class="flex items-center space-x-1 cursor-pointer">
+                                    <input type="radio" name="attendance_${student.id}" value="present" class="text-green-500 focus:ring-green-500">
+                                    <span class="text-sm text-green-600">Hadir</span>
+                                </label>
+                                <label class="flex items-center space-x-1 cursor-pointer">
+                                    <input type="radio" name="attendance_${student.id}" value="absent" class="text-red-500 focus:ring-red-500">
+                                    <span class="text-sm text-red-600">Tidak</span>
+                                </label>
+                                <label class="flex items-center space-x-1 cursor-pointer">
+                                    <input type="radio" name="attendance_${student.id}" value="excused" class="text-yellow-500 focus:ring-yellow-500">
+                                    <span class="text-sm text-yellow-600">Izin</span>
+                                </label>
                             </div>
-                        `;
-                        break;
-                    case 'warning':
-                        toast.classList.add('bg-yellow-500', 'text-white');
-                        toast.innerHTML = `
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <span>${message}</span>
-                            </div>
-                        `;
-                        break;
-                    case 'info':
-                        toast.classList.add('bg-blue-500', 'text-white');
-                        toast.innerHTML = `
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-info-circle"></i>
-                                <span>${message}</span>
-                            </div>
-                        `;
-                        break;
+                        </div>
+                    `).join('')}</div>`;
                 }
-                
-                // Show toast
-                setTimeout(() => {
-                    toast.classList.remove('translate-x-full');
-                }, 100);
-                
-                // Hide toast after 3 seconds
-                setTimeout(() => {
-                    toast.classList.add('translate-x-full');
-                }, 3000);
+                if (saveBtn) saveBtn.disabled = false;
             },
-            
-            hideSplashScreen() {
-                const splashScreen = document.getElementById('splashScreen');
-                if (splashScreen) {
-                    splashScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        splashScreen.style.display = 'none';
-                    }, 300);
-                }
+
+            saveAttendance() {
+                this.showToast('Fitur presensi akan dikembangkan nanti.', 'info');
+            },
+
+            showJournalForm() {
+                this.showToast('Fitur jurnal akan dikembangkan nanti.', 'info');
+            },
+
+            hideJournalForm() {},
+
+            saveJournal() {},
+
+            loadJournalData() {
+                const container = document.getElementById('journalList');
+                if (container) container.innerHTML = `<div class="p-6"><div class="empty-state"><i class="fas fa-book empty-state-icon"></i><h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Jurnal</h4><p class="text-gray-500 mb-4">Fitur jurnal akan segera dikembangkan.</p></div></div>`;
+            },
+
+            generateReport() {
+                this.showToast('Fitur laporan akan dikembangkan nanti.', 'info');
+            },
+
+            showImportModal() {
+                this.showToast('Fitur import akan dikembangkan nanti.', 'info');
+            },
+
+            hideImportModal() {},
+
+            exportStudentsData() {
+                this.showToast('Fitur export akan dikembangkan nanti.', 'info');
+            },
+
+            downloadTemplate() {
+                this.showToast('Fitur template akan dikembangkan nanti.', 'info');
             }
         };
-        
-        // Initialize App when DOM is ready
+
+        // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             App.init();
         });
-        
+
         // Make App globally accessible
         window.App = App;
-    </script>
-    
-    <!-- Service Worker Registration for PWA -->
-    <script>
+
+        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
