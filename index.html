@@ -16,14 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
     
     <style>
         /* Core Styles */
@@ -143,6 +136,20 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+        
         /* Mobile Optimizations */
         @media (max-width: 768px) {
             .mobile-full-width {
@@ -184,7 +191,7 @@
     <!-- Connection Status -->
     <div id="connectionStatus" class="connection-status connecting">
         <i class="fas fa-wifi mr-1"></i>
-        <span>Connecting...</span>
+        <span>Offline Mode</span>
     </div>
 
     <!-- Mobile Header -->
@@ -398,8 +405,8 @@
                             <button id="exportStudentsBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
                                 <i class="fas fa-file-export mr-2"></i>Export Excel
                             </button>
-                            <button id="syncStudentsBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
-                                <i class="fas fa-sync mr-2"></i>Sync Database
+                            <button id="downloadTemplateBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all mobile-button">
+                                <i class="fas fa-download mr-2"></i>Template
                             </button>
                         </div>
                     </div>
@@ -443,8 +450,11 @@
                                         <td colspan="5" class="p-8">
                                             <div class="empty-state">
                                                 <i class="fas fa-users empty-state-icon"></i>
-                                                <h4 class="text-lg font-medium text-gray-900 mb-2">Memuat data siswa...</h4>
-                                                <p class="text-gray-500">Mohon tunggu sebentar</p>
+                                                <h4 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Data Siswa</h4>
+                                                <p class="text-gray-500 mb-4">Mulai dengan menambahkan siswa baru atau import data dari Excel.</p>
+                                                <button onclick="document.getElementById('addStudentBtn').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all">
+                                                    <i class="fas fa-plus mr-2"></i>Tambah Siswa Pertama
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -738,7 +748,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">NIS *</label>
-                        <input type="text" id="studentNIS" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: 2024010001">
+                        <input type="text" id="studentNIS" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: 00001" maxlength="5">
                         <button type="button" id="generateNIS" class="mt-1 text-sm text-blue-600 hover:text-blue-800">Generate NIS Otomatis</button>
                     </div>
                     <div>
@@ -862,7 +872,7 @@
                             <span>Gender</span>
                         </div>
                         <div class="grid grid-cols-4 gap-2 text-gray-600">
-                            <span>202401001</span>
+                            <span>00001</span>
                             <span>Ahmad Budi</span>
                             <span>X-1</span>
                             <span>L</span>
@@ -949,12 +959,6 @@
     </div>
 
     <script>
-        // Initialize Supabase
-        const SUPABASE_URL = 'https://lleviwszkjhoyqvpiapu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsZXZpd3N6a2pob3lxdnBpYXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDc3MjcsImV4cCI6MjA3NDA4MzcyN30.YP6WYMiwJch6lhk2AiLUtUwyGZ5soO382MjqKD4jwg4';
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
         // Application State
         const App = {
             // Configuration
@@ -998,124 +1002,36 @@
             },
             
             // Initialize Application
-            async init() {
+            init() {
                 this.log('Initializing application');
                 
-                try {
-                    // Check connection to Supabase
-                    const { data, error } = await supabase.from('students').select('count', { count: 'exact', head: true });
-                    
-                    if (error) {
-                        throw error;
-                    }
-                    
-                    this.log('Connected to Supabase successfully');
-                    
-                    // Set up event listeners
-                    this.setupEventListeners();
-                    
-                    // Set up responsive handlers
-                    this.setupResponsiveHandlers();
-                    
-                    // Load data from Supabase
-                    await this.loadDataFromSupabase();
-                    
-                    // Initialize UI
-                    this.updateCurrentDate();
-                    this.updateConnectionStatus();
-                    this.loadTeacherProfile();
-                    
-                    // Show initial view
-                    this.showView('dashboard');
-                    
-                    // Hide splash screen after initialization
-                    setTimeout(() => this.hideSplashScreen(), 2000);
-                    
-                    this.log('Application initialized successfully');
-                } catch (error) {
-                    this.log('Error initializing application:', error);
-                    this.showToast('Gagal terhubung ke database. Mohon periksa koneksi internet.', 'error');
-                }
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                // Set up responsive handlers
+                this.setupResponsiveHandlers();
+                
+                // Load data from storage
+                this.loadDataFromStorage();
+                
+                // Initialize UI
+                this.updateCurrentDate();
+                this.updateConnectionStatus();
+                this.loadTeacherProfile();
+                
+                // Show initial view
+                this.showView('dashboard');
+                
+                // Hide splash screen after initialization
+                setTimeout(() => this.hideSplashScreen(), 2000);
+                
+                this.log('Application initialized successfully');
             },
             
             // Logging function
             log(...args) {
                 if (this.config.debug) {
                     console.log('[APP]', ...args);
-                }
-            },
-            
-            // Load Data From Supabase
-            async loadDataFromSupabase() {
-                try {
-                    // Load students data
-                    const { data: studentsData, error: studentsError } = await supabase
-                        .from('students')
-                        .select('*')
-                        .order('class', { ascending: true })
-                        .order('name', { ascending: true });
-                    
-                    if (studentsError) throw studentsError;
-                    this.state.students = studentsData || [];
-                    
-                    // Load attendance data from localStorage (temporary)
-                    const attendanceData = localStorage.getItem(this.config.storagePrefix + 'attendance');
-                    if (attendanceData) {
-                        this.state.attendance = JSON.parse(attendanceData);
-                    }
-                    
-                    // Load journal data from localStorage (temporary)
-                    const journalData = localStorage.getItem(this.config.storagePrefix + 'journal');
-                    if (journalData) {
-                        this.state.journal = JSON.parse(journalData);
-                    }
-                    
-                    // Load teacher profile from localStorage
-                    const teacherProfile = localStorage.getItem(this.config.storagePrefix + 'teacherProfile');
-                    if (teacherProfile) {
-                        this.state.teacherProfile = { ...this.state.teacherProfile, ...JSON.parse(teacherProfile) };
-                    }
-                    
-                    this.updateStudentsStats();
-                    this.log('Data loaded from Supabase successfully');
-                } catch (error) {
-                    this.log('Error loading data from Supabase:', error);
-                    this.showToast('Gagal memuat data dari database', 'error');
-                }
-            },
-            
-            // Save Student to Supabase
-            async saveStudentToSupabase(studentData) {
-                try {
-                    const { data, error } = await supabase
-                        .from('students')
-                        .upsert(studentData, { onConflict: 'nis' })
-                        .select()
-                        .single();
-                    
-                    if (error) throw error;
-                    
-                    return data;
-                } catch (error) {
-                    this.log('Error saving student to Supabase:', error);
-                    throw error;
-                }
-            },
-            
-            // Delete Student from Supabase
-            async deleteStudentFromSupabase(studentId) {
-                try {
-                    const { error } = await supabase
-                        .from('students')
-                        .delete()
-                        .eq('id', studentId);
-                    
-                    if (error) throw error;
-                    
-                    return true;
-                } catch (error) {
-                    this.log('Error deleting student from Supabase:', error);
-                    throw error;
                 }
             },
             
@@ -1146,12 +1062,6 @@
                         this.showView(views[index]);
                     });
                 });
-                
-                // Sync Students Button
-                const syncStudentsBtn = document.getElementById('syncStudentsBtn');
-                if (syncStudentsBtn) {
-                    syncStudentsBtn.addEventListener('click', () => this.syncStudentsFromSupabase());
-                }
                 
                 // Attendance functionality
                 const attendanceClass = document.getElementById('attendanceClass');
@@ -1425,19 +1335,52 @@
                 document.documentElement.style.setProperty('--vh', `${vh}px`);
             },
             
-            // Sync Students from Supabase
-            async syncStudentsFromSupabase() {
-                this.showLoading(true);
-                
+            // Load Data From Storage
+            loadDataFromStorage() {
                 try {
-                    await this.loadDataFromSupabase();
-                    this.loadStudentsData();
-                    this.showToast('Data siswa berhasil disinkronisasi!', 'success');
+                    // Load students data
+                    const studentsData = localStorage.getItem(this.config.storagePrefix + 'students');
+                    if (studentsData) {
+                        this.state.students = JSON.parse(studentsData);
+                    }
+                    
+                    // Load attendance data
+                    const attendanceData = localStorage.getItem(this.config.storagePrefix + 'attendance');
+                    if (attendanceData) {
+                        this.state.attendance = JSON.parse(attendanceData);
+                    }
+                    
+                    // Load journal data
+                    const journalData = localStorage.getItem(this.config.storagePrefix + 'journal');
+                    if (journalData) {
+                        this.state.journal = JSON.parse(journalData);
+                    }
+                    
+                    // Load teacher profile
+                    const teacherProfile = localStorage.getItem(this.config.storagePrefix + 'teacherProfile');
+                    if (teacherProfile) {
+                        this.state.teacherProfile = { ...this.state.teacherProfile, ...JSON.parse(teacherProfile) };
+                    }
+                    
+                    this.updateStudentsStats();
+                    this.log('Data loaded from storage successfully');
                 } catch (error) {
-                    this.log('Error syncing students:', error);
-                    this.showToast('Gagal menyinkronkan data siswa', 'error');
-                } finally {
-                    this.showLoading(false);
+                    this.log('Error loading data from storage:', error);
+                    this.showToast('Gagal memuat data dari penyimpanan lokal', 'error');
+                }
+            },
+            
+            // Save Data To Storage
+            saveDataToStorage() {
+                try {
+                    localStorage.setItem(this.config.storagePrefix + 'students', JSON.stringify(this.state.students));
+                    localStorage.setItem(this.config.storagePrefix + 'attendance', JSON.stringify(this.state.attendance));
+                    localStorage.setItem(this.config.storagePrefix + 'journal', JSON.stringify(this.state.journal));
+                    localStorage.setItem(this.config.storagePrefix + 'teacherProfile', JSON.stringify(this.state.teacherProfile));
+                    this.log('Data saved to storage successfully');
+                } catch (error) {
+                    this.log('Error saving data to storage:', error);
+                    this.showToast('Gagal menyimpan data ke penyimpanan lokal', 'error');
                 }
             },
             
@@ -1627,8 +1570,11 @@
                         </td>
                         <td class="p-4">
                             <div class="flex space-x-2">
-                                <button onclick="App.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors mobile-button" title="Edit">
+                                <button onclick="App.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors mobile-button" title="Edit Data">
                                     <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="App.editStudentClass('${student.id}')" class="text-purple-600 hover:text-purple-800 transition-colors mobile-button" title="Edit Kelas">
+                                    <i class="fas fa-exchange-alt"></i>
                                 </button>
                                 <button onclick="App.deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 transition-colors mobile-button" title="Hapus">
                                     <i class="fas fa-trash"></i>
@@ -1705,6 +1651,32 @@
                 if (studentModal) studentModal.classList.remove('hidden');
             },
             
+            // Edit Student Class
+            editStudentClass(studentId) {
+                const student = this.state.students.find(s => s.id === studentId);
+                if (!student) return;
+                
+                const newClass = prompt(`Pindahkan ${student.name} dari kelas ${student.class} ke kelas:\n\nX-1, X-2, X-3, X-4, X-5, X-6, X-7, X-8, X-9, X-10, X-11`, student.class);
+                
+                if (!newClass) return;
+                
+                // Validasi kelas
+                const validClasses = this.config.classOptions;
+                if (!validClasses.includes(newClass)) {
+                    this.showToast('Kelas tidak valid!', 'error');
+                    return;
+                }
+                
+                // Update kelas
+                const index = this.state.students.findIndex(s => s.id === studentId);
+                if (index !== -1) {
+                    this.state.students[index].class = newClass;
+                    this.saveDataToStorage();
+                    this.loadStudentsData();
+                    this.showToast(`${student.name} berhasil dipindahkan ke kelas ${newClass}!`, 'success');
+                }
+            },
+            
             // Delete Student
             deleteStudent(studentId) {
                 const student = this.state.students.find(s => s.id === studentId);
@@ -1736,7 +1708,7 @@
                 if (studentForm) studentForm.reset();
             },
             
-            // Generate NIS
+            // Generate NIS - PERUBAHAN UNTUK 5 DIGIT
             generateNIS() {
                 const studentClass = document.getElementById('studentClass');
                 if (!studentClass || !studentClass.value) {
@@ -1744,21 +1716,16 @@
                     return;
                 }
                 
-                const year = new Date().getFullYear();
-                const classNum = studentClass.value;
-                
-                // Extract class number (X-1 -> 01, X-2 -> 02, etc.)
-                const classNumber = classNum.split('-')[1].padStart(2, '0');
-                const classStudents = this.state.students.filter(s => s.class === classNum);
-                const nextNumber = (classStudents.length + 1).toString().padStart(3, '0');
-                const nis = `${year}${classNumber}${nextNumber}`;
+                const classStudents = this.state.students.filter(s => s.class === studentClass.value);
+                const nextNumber = (classStudents.length + 1).toString();
+                const nis = nextNumber.padStart(5, '0'); // 5 digit
                 
                 const studentNIS = document.getElementById('studentNIS');
                 if (studentNIS) studentNIS.value = nis;
             },
             
-            // Save Student
-            async saveStudent() {
+            // Save Student - PERUBAHAN VALIDASI NIS
+            saveStudent() {
                 const studentNIS = document.getElementById('studentNIS');
                 const studentName = document.getElementById('studentName');
                 const studentClass = document.getElementById('studentClass');
@@ -1785,71 +1752,51 @@
                     return;
                 }
                 
-                // NIS format validation
-                if (!/^\d{10}$/.test(formData.nis)) {
-                    this.showToast('Format NIS harus 10 digit angka', 'error');
+                // NIS format validation - PERUBAHAN DARI 10 DIGIT MENJADI 5 DIGIT
+                if (!/^\d{5}$/.test(formData.nis)) {
+                    this.showToast('Format NIS harus 5 digit angka', 'error');
                     return;
                 }
                 
-                this.showLoading(true);
-                
-                try {
-                    if (this.state.currentEditingStudent) {
-                        // Update existing student
-                        const updatedStudent = await this.saveStudentToSupabase({
-                            ...formData,
-                            id: this.state.currentEditingStudent.id
-                        });
-                        
-                        const index = this.state.students.findIndex(s => s.id === this.state.currentEditingStudent.id);
-                        if (index !== -1) {
-                            this.state.students[index] = updatedStudent;
-                        }
-                        
-                        this.showToast('Data siswa berhasil diupdate!', 'success');
-                    } else {
-                        // Add new student
-                        const newStudent = await this.saveStudentToSupabase(formData);
-                        this.state.students.push(newStudent);
-                        this.showToast('Siswa berhasil ditambahkan!', 'success');
-                    }
-                    
-                    this.updateStudentsStats();
-                    this.loadStudentsData();
-                    this.hideStudentModal();
-                } catch (error) {
-                    this.log('Error saving student:', error);
-                    
-                    if (error.code === '23505') {
-                        this.showToast('NIS sudah digunakan', 'error');
-                    } else {
-                        this.showToast('Gagal menyimpan data siswa', 'error');
-                    }
-                } finally {
-                    this.showLoading(false);
+                // Check duplicate NIS
+                const existingStudent = this.state.students.find(s => 
+                    s.nis === formData.nis && s.id !== (this.state.currentEditingStudent?.id)
+                );
+                if (existingStudent) {
+                    this.showToast('NIS sudah digunakan', 'error');
+                    return;
                 }
+                
+                if (this.state.currentEditingStudent) {
+                    // Update existing student
+                    const index = this.state.students.findIndex(s => s.id === this.state.currentEditingStudent.id);
+                    if (index !== -1) {
+                        this.state.students[index] = { ...this.state.students[index], ...formData };
+                    }
+                    this.showToast('Data siswa berhasil diupdate!', 'success');
+                } else {
+                    // Add new student
+                    formData.id = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    this.state.students.push(formData);
+                    this.showToast('Siswa berhasil ditambahkan!', 'success');
+                }
+                
+                this.saveDataToStorage();
+                this.updateStudentsStats();
+                this.loadStudentsData();
+                this.hideStudentModal();
             },
             
             // Confirm Delete Student
-            async confirmDeleteStudent() {
+            confirmDeleteStudent() {
                 if (!this.state.studentToDelete) return;
                 
-                this.showLoading(true);
-                
-                try {
-                    await this.deleteStudentFromSupabase(this.state.studentToDelete.id);
-                    
-                    this.state.students = this.state.students.filter(s => s.id !== this.state.studentToDelete.id);
-                    this.updateStudentsStats();
-                    this.loadStudentsData();
-                    this.showToast('Siswa berhasil dihapus!', 'success');
-                    this.hideDeleteModal();
-                } catch (error) {
-                    this.log('Error deleting student:', error);
-                    this.showToast('Gagal menghapus data siswa', 'error');
-                } finally {
-                    this.showLoading(false);
-                }
+                this.state.students = this.state.students.filter(s => s.id !== this.state.studentToDelete.id);
+                this.saveDataToStorage();
+                this.updateStudentsStats();
+                this.loadStudentsData();
+                this.showToast('Siswa berhasil dihapus!', 'success');
+                this.hideDeleteModal();
             },
             
             // Filter Students
@@ -1920,8 +1867,11 @@
                         </td>
                         <td class="p-4">
                             <div class="flex space-x-2">
-                                <button onclick="App.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors mobile-button" title="Edit">
+                                <button onclick="App.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors mobile-button" title="Edit Data">
                                     <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="App.editStudentClass('${student.id}')" class="text-purple-600 hover:text-purple-800 transition-colors mobile-button" title="Edit Kelas">
+                                    <i class="fas fa-exchange-alt"></i>
                                 </button>
                                 <button onclick="App.deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 transition-colors mobile-button" title="Hapus">
                                     <i class="fas fa-trash"></i>
@@ -2144,7 +2094,8 @@
                                         </label>
                                     </div>
                                 </div>
-                            `).join('')}
+                            </div>
+                        `).join('')}
                         </div>
                     `;
                 }
@@ -2223,12 +2174,10 @@
                     this.state.attendance.push(attendanceRecord);
                 }
                 
-                // Save to localStorage
-                localStorage.setItem(this.config.storagePrefix + 'attendance', JSON.stringify(this.state.attendance));
-                
                 // Simulate API call
                 setTimeout(() => {
                     this.showLoading(false);
+                    this.saveDataToStorage();
                     this.showToast('Presensi berhasil disimpan!', 'success');
                     
                     // Reset form
@@ -2300,10 +2249,10 @@
                 };
                 
                 this.state.journal.unshift(journalEntry);
-                localStorage.setItem(this.config.storagePrefix + 'journal', JSON.stringify(this.state.journal));
                 
                 setTimeout(() => {
                     this.showLoading(false);
+                    this.saveDataToStorage();
                     this.showToast('Jurnal berhasil disimpan!', 'success');
                     this.hideJournalForm();
                     this.loadJournalData();
@@ -2369,7 +2318,7 @@
             
             deleteJournal(journalId) {
                 this.state.journal = this.state.journal.filter(j => j.id !== journalId);
-                localStorage.setItem(this.config.storagePrefix + 'journal', JSON.stringify(this.state.journal));
+                this.saveDataToStorage();
                 this.loadJournalData();
                 this.showToast('Jurnal berhasil dihapus!', 'success');
             },
@@ -2588,7 +2537,8 @@
                 if (processImport) processImport.disabled = false;
             },
             
-            async processImport() {
+            // Enhanced Import Process
+            processImport() {
                 const fileInput = document.getElementById('fileInput');
                 const file = fileInput ? fileInput.files[0] : null;
                 
@@ -2608,54 +2558,118 @@
                         const worksheet = workbook.Sheets[sheetName];
                         const jsonData = XLSX.utils.sheet_to_json(worksheet);
                         
-                        // Process imported data
+                        // Reset import status
                         let importedCount = 0;
+                        let errorCount = 0;
                         const errors = [];
                         
-                        for (const [index, row] of jsonData.entries()) {
+                        // Proses maksimal 300 data
+                        const maxData = 300;
+                        const dataToProcess = jsonData.slice(0, maxData);
+                        
+                        // Update UI dengan progress
+                        const processImportBtn = document.getElementById('processImport');
+                        if (processImportBtn) {
+                            processImportBtn.textContent = `Memproses 0/${dataToProcess.length}...`;
+                            processImportBtn.disabled = true;
+                        }
+                        
+                        // Proses satu per satu dengan delay untuk UI update
+                        for (let i = 0; i < dataToProcess.length; i++) {
+                            const row = dataToProcess[i];
+                            
                             try {
                                 const student = {
-                                    nis: row.NIS?.toString() || '',
-                                    name: row.Nama || '',
-                                    class: row.Kelas || '',
-                                    gender: row.Gender || row['Jenis Kelamin'] || '',
-                                    phone: row.Telepon || row['No. Telepon'] || '',
-                                    address: row.Alamat || '',
-                                    parent_name: row['Nama Orang Tua'] || row['Orang Tua'] || '',
-                                    parent_phone: row['Telepon Orang Tua'] || ''
+                                    nis: row.NIS?.toString().trim() || '',
+                                    name: row.Nama?.trim() || '',
+                                    class: row.Kelas?.trim() || '',
+                                    gender: (row['Jenis Kelamin'] || row.Gender)?.toString().toUpperCase().trim() || '',
+                                    phone: (row['No. Telepon'] || row.Telepon)?.toString().trim() || '',
+                                    address: (row.Alamat || '').trim() || '',
+                                    parent_name: (row['Nama Orang Tua'] || row['Orang Tua'])?.trim() || '',
+                                    parent_phone: (row['Telepon Orang Tua'] || row['No. Telepon Orang Tua'])?.toString().trim() || ''
                                 };
                                 
-                                // Validation
+                                // Validasi data wajib
                                 if (!student.nis || !student.name || !student.class) {
-                                    errors.push(`Baris ${index + 2}: Data tidak lengkap`);
+                                    errors.push(`Baris ${i + 2}: Data tidak lengkap (NIS, Nama, Kelas wajib diisi)`);
+                                    errorCount++;
                                     continue;
                                 }
                                 
-                                // Save to Supabase
-                                await this.saveStudentToSupabase(student);
+                                // Validasi NIS format - PERUBAHAN UNTUK 5 DIGIT
+                                if (!/^\d{5}$/.test(student.nis)) {
+                                    errors.push(`Baris ${i + 2}: NIS ${student.nis} harus 5 digit angka`);
+                                    errorCount++;
+                                    continue;
+                                }
+                                
+                                // Validasi jenis kelamin
+                                if (!['L', 'P'].includes(student.gender)) {
+                                    errors.push(`Baris ${i + 2}: Jenis kelamin harus L atau P`);
+                                    errorCount++;
+                                    continue;
+                                }
+                                
+                                // Cek duplikat NIS
+                                if (this.state.students.find(s => s.nis === student.nis)) {
+                                    errors.push(`Baris ${i + 2}: NIS ${student.nis} sudah ada`);
+                                    errorCount++;
+                                    continue;
+                                }
+                                
+                                // Generate ID dan tambahkan ke array
+                                student.id = `local-${Date.now()}-${i}`;
+                                student.attendance_rate = 0; // Default 0%
+                                
+                                this.state.students.push(student);
                                 importedCount++;
+                                
+                                // Update progress
+                                if (processImportBtn) {
+                                    processImportBtn.textContent = `Memproses ${i + 1}/${dataToProcess.length}...`;
+                                }
+                                
+                                // Delay kecil untuk UI update
+                                await new Promise(resolve => setTimeout(resolve, 10));
+                                
                             } catch (error) {
-                                errors.push(`Baris ${index + 2}: ${error.message}`);
+                                errors.push(`Baris ${i + 2}: ${error.message}`);
+                                errorCount++;
                             }
                         }
                         
-                        // Reload data from Supabase
-                        await this.loadDataFromSupabase();
+                        // Simpan ke localStorage
+                        this.saveDataToStorage();
                         
+                        // Tampilkan hasil
                         this.showLoading(false);
                         this.hideImportModal();
                         
-                        if (importedCount > 0) {
-                            this.showToast(`Berhasil import ${importedCount} siswa!`, 'success');
-                            if (this.state.currentView === 'students') {
-                                this.loadStudentsData();
+                        let message = `Import selesai!\n`;
+                        message += `✅ Berhasil: ${importedCount} siswa\n`;
+                        message += `❌ Gagal: ${errorCount} siswa\n`;
+                        message += `📊 Total: ${dataToProcess.length} data`;
+                        
+                        if (errors.length > 0) {
+                            message += `\n\nDetail Error:\n${errors.slice(0, 5).join('\n')}`;
+                            if (errors.length > 5) {
+                                message += `\n... dan ${errors.length - 5} error lainnya`;
                             }
                         }
                         
-                        if (errors.length > 0) {
-                            this.log('Import errors:', errors);
-                            this.showToast(`${importedCount} siswa berhasil, ${errors.length} error`, 'warning');
+                        this.showToast(message, importedCount > 0 ? 'success' : 'warning');
+                        
+                        // Update UI
+                        this.updateStudentsStats();
+                        if (this.state.currentView === 'students') {
+                            this.loadStudentsData();
                         }
+                        
+                        // Auto refresh data
+                        setTimeout(() => {
+                            this.loadStudentsData();
+                        }, 1000);
                         
                     } catch (error) {
                         this.showLoading(false);
@@ -2665,6 +2679,87 @@
                 };
                 
                 reader.readAsArrayBuffer(file);
+            },
+            
+            // Enhanced Download Template
+            downloadTemplate() {
+                const templateData = [
+                    {
+                        'NIS': '00001',
+                        'Nama Lengkap': 'Ahmad Budi Santoso',
+                        'Kelas': 'X-1',
+                        'Jenis Kelamin': 'L',
+                        'No. HP': '081234567890',
+                        'Alamat': 'Jl. Contoh No. 123, Kota, Provinsi',
+                        'Nama Ayah/Ibu/Wali': 'Budi Santoso',
+                        'No. HP Orang Tua': '081234567891'
+                    },
+                    {
+                        'NIS': '00002',
+                        'Nama Lengkap': 'Siti Nurhaliza',
+                        'Kelas': 'X-1',
+                        'Jenis Kelamin': 'P',
+                        'No. HP': '081234567892',
+                        'Alamat': 'Jl. Contoh No. 124, Kota, Provinsi',
+                        'Nama Ayah/Ibu/Wali': 'Ahmad Nurdin',
+                        'No. HP Orang Tua': '081234567893'
+                    }
+                ];
+                
+                // Buat worksheet dengan header yang lebih jelas
+                const ws = XLSX.utils.json_to_sheet(templateData, {
+                    header: [
+                        'NIS (5 digit angka)',
+                        'Nama Lengkap',
+                        'Kelas (X-1 sampai X-11)',
+                        'Jenis Kelamin (L/P)',
+                        'No. HP',
+                        'Alamat Lengkap',
+                        'Nama Ayah/Ibu/Wali',
+                        'No. HP Orang Tua'
+                    ]
+                });
+                
+                // Set lebar kolom
+                ws['!cols'] = [
+                    { wch: 12 }, // NIS - lebih kecil karena 5 digit
+                    { wch: 30 }, // Nama
+                    { wch: 10 }, // Kelas
+                    { wch: 15 }, // Gender
+                    { wch: 15 }, // Phone
+                    { wch: 40 }, // Address
+                    { wch: 30 }, // Parent
+                    { wch: 15 }  // Parent Phone
+                ];
+                
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Template Data Siswa');
+                
+                // Tambahkan sheet instruksi
+                const instructionData = [
+                    {'PETUNJUK PENGISIAN DATA': ''},
+                    {'': ''},
+                    {'1. NIS': 'Nomor Induk Siswa, 5 digit angka'},
+                    {'2. Nama Lengkap': 'Nama siswa sesuai dokumen resmi'},
+                    {'3. Kelas': 'Pilih dari X-1 sampai X-11'},
+                    {'4. Jenis Kelamin': 'L = Laki-laki, P = Perempuan'},
+                    {'5. No. HP': 'Nomor telepon aktif dengan kode negara'},
+                    {'6. Alamat': 'Alamat lengkap dengan kota dan provinsi'},
+                    {'7. Orang Tua': 'Nama ayah/ibu/wali yang sah'},
+                    {'': ''},
+                    {'CATATAN PENTING': ''},
+                    {'• Pastikan semua data terisi dengan benar'},
+                    {'• File harus dalam format .xlsx atau .xls'},
+                    {'• Maksimal 300 data per import'},
+                    {'• NIS harus unik (tidak boleh ada yang sama)'},
+                    {'• NIS hanya 5 digit angka'}
+                ];
+                
+                const instructionWs = XLSX.utils.json_to_sheet(instructionData);
+                XLSX.utils.book_append_sheet(wb, instructionWs, 'PETUNJUK');
+                
+                XLSX.writeFile(wb, 'template-data-siswa-lengkap.xlsx');
+                this.showToast('Template lengkap berhasil didownload!', 'success');
             },
             
             exportStudentsData() {
@@ -2697,38 +2792,6 @@
                     this.showLoading(false);
                     this.showToast('Data siswa berhasil diekspor!', 'success');
                 }, 1000);
-            },
-            
-            downloadTemplate() {
-                const templateData = [
-                    {
-                        'NIS': '2024010001',
-                        'Nama': 'Ti Kaya',
-                        'Kelas': 'X-1',
-                        'Jenis Kelamin': 'L',
-                        'No. Telepon': '081234567890',
-                        'Alamat': 'Jl. Contoh No. 123',
-                        'Nama Orang Tua': 'Teme Bongo',
-                        'Telepon Orang Tua': '081234567891'
-                    },
-                    {
-                        'NIS': '2024010002',
-                        'Nama': 'Ti Nalimbo',
-                        'Kelas': 'X-1',
-                        'Jenis Kelamin': 'P',
-                        'No. Telepon': '081234567892',
-                        'Alamat': 'Jl. Contoh No. 124',
-                        'Nama Orang Tua': 'Teme Uri',
-                        'Telepon Orang Tua': '081234567893'
-                    }
-                ];
-                
-                const ws = XLSX.utils.json_to_sheet(templateData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Template Data Siswa');
-                
-                XLSX.writeFile(wb, 'template-data-siswa.xlsx');
-                this.showToast('Template berhasil didownload!', 'success');
             },
             
             // Teacher Profile Functions
@@ -2913,7 +2976,7 @@
                 };
                 
                 // Save to localStorage
-                localStorage.setItem(this.config.storagePrefix + 'teacherProfile', JSON.stringify(this.state.teacherProfile));
+                this.saveDataToStorage();
                 
                 // Update UI
                 this.updateTeacherProfileDisplay();
