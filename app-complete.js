@@ -1,28 +1,19 @@
-// Aplikasi Absensi Siswa - Fase 1 Complete Version
-// Semua fitur terintegrasi dengan Supabase
+// app-complete.js — Versi Final untuk Migrasi Penuh ke Supabase
 
-// === SUPABASE SERVICE (Sudah ada di supabase-service.js, tapi kita include ulang untuk complete version) ===
 class SupabaseService {
   constructor() {
-    // GANTI dengan project Anda
     this.SUPABASE_URL = 'https://lleviwszkjhoyqvpiapu.supabase.co';
     this.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsZXZpd3N6a2pob3lxdnBpYXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDc3MjcsImV4cCI6MjA3NDA4MzcyN30.YP6WYMiwJch6lhk2AiLUtUwyGZ5soO382MjqKD4jwg4';
-    
-    this.supabase = window.supabase.createClient(
-      this.SUPABASE_URL, 
-      this.SUPABASE_ANON_KEY
-    );
+    this.supabase = window.supabase.createClient(this.SUPABASE_URL, this.SUPABASE_ANON_KEY);
   }
 
-  // === CORE DATABASE FUNCTIONS ===
-  
+  // === SISWA ===
   async getStudents() {
     const { data, error } = await this.supabase
       .from('students')
       .select('*')
       .order('class', { ascending: true })
       .order('name', { ascending: true });
-    
     if (error) throw error;
     return data || [];
   }
@@ -33,18 +24,24 @@ class SupabaseService {
       .upsert(studentData, { onConflict: 'nis' })
       .select()
       .single();
-    
     if (error) throw error;
     return data;
   }
 
-  async getAttendance(limit = 100) {
+  async deleteStudent(studentId) {
+    const { error } = await this.supabase
+      .from('students')
+      .delete()
+      .eq('id', studentId);
+    if (error) throw error;
+  }
+
+  // === PRESENSI ===
+  async getAttendance() {
     const { data, error } = await this.supabase
       .from('attendance')
       .select('*')
-      .order('date', { ascending: false })
-      .limit(limit);
-    
+      .order('date', { ascending: false });
     if (error) throw error;
     return data || [];
   }
@@ -55,18 +52,16 @@ class SupabaseService {
       .upsert(attendanceData, { onConflict: 'class_name,date,subject' })
       .select()
       .single();
-    
     if (error) throw error;
     return data;
   }
 
-  async getJournals(limit = 50) {
+  // === JURNAL ===
+  async getJournals() {
     const { data, error } = await this.supabase
       .from('journals')
       .select('*')
-      .order('date', { ascending: false })
-      .limit(limit);
-    
+      .order('date', { ascending: false });
     if (error) throw error;
     return data || [];
   }
@@ -77,18 +72,25 @@ class SupabaseService {
       .insert(journalData)
       .select()
       .single();
-    
     if (error) throw error;
     return data;
   }
 
+  async deleteJournal(journalId) {
+    const { error } = await this.supabase
+      .from('journals')
+      .delete()
+      .eq('id', journalId);
+    if (error) throw error;
+  }
+
+  // === PROFIL GURU ===
   async getTeacherProfile() {
     const { data, error } = await this.supabase
       .from('teacher_profiles')
       .select('*')
       .limit(1)
       .single();
-
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   }
@@ -99,23 +101,19 @@ class SupabaseService {
       .upsert(profileData)
       .select()
       .single();
-
     if (error) throw error;
     return data;
   }
 }
 
 // === UI UPDATE FUNCTIONS ===
-
 function updateStudentsTable(students) {
   const tbody = document.getElementById('studentsTableBody');
   if (!tbody) return;
-  
   if (students.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">Belum ada data siswa</td></tr>';
     return;
   }
-  
   tbody.innerHTML = students.map(student => `
     <tr class="border-b border-gray-100 hover:bg-gray-50">
       <td class="p-4 font-medium text-gray-900">${student.nis}</td>
@@ -145,10 +143,10 @@ function updateStudentsTable(students) {
       </td>
       <td class="p-4">
         <div class="flex space-x-2">
-          <button onclick="App.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors" title="Edit">
+          <button onclick="window.app.editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800 transition-colors" title="Edit">
             <i class="fas fa-edit"></i>
           </button>
-          <button onclick="App.deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 transition-colors" title="Hapus">
+          <button onclick="window.app.deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 transition-colors" title="Hapus">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -160,7 +158,6 @@ function updateStudentsTable(students) {
 function updateAttendanceDisplay(attendance) {
   const container = document.getElementById('attendanceStudentsList');
   if (!container) return;
-  
   if (attendance.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -171,7 +168,6 @@ function updateAttendanceDisplay(attendance) {
     `;
     return;
   }
-  
   container.innerHTML = attendance.map(record => `
     <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-4">
       <div class="flex items-center justify-between mb-3">
@@ -208,7 +204,6 @@ function updateAttendanceDisplay(attendance) {
 function updateJournalDisplay(journals) {
   const container = document.getElementById('journalList');
   if (!container) return;
-  
   if (journals.length === 0) {
     container.innerHTML = `
       <div class="p-6">
@@ -224,7 +219,6 @@ function updateJournalDisplay(journals) {
     `;
     return;
   }
-  
   container.innerHTML = journals.map(journal => `
     <div class="p-6 border-b border-gray-100">
       <div class="flex items-start justify-between mb-3">
@@ -241,7 +235,7 @@ function updateJournalDisplay(journals) {
           <button class="text-blue-600 hover:text-blue-800 transition-colors">
             <i class="fas fa-edit"></i>
           </button>
-          <button onclick="App.deleteJournal('${journal.id}')" class="text-red-600 hover:text-red-800 transition-colors">
+          <button onclick="window.app.deleteJournal('${journal.id}')" class="text-red-600 hover:text-red-800 transition-colors">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -251,329 +245,225 @@ function updateJournalDisplay(journals) {
           <p class="text-sm font-medium text-gray-700">Kegiatan:</p>
           <p class="text-sm text-gray-600">${journal.activity}</p>
         </div>
-        ${journal.notes ? `
-          <div>
-            <p class="text-sm font-medium text-gray-700">Catatan:</p>
-            <p class="text-sm text-gray-600">${journal.notes}</p>
-          </div>
-        ` : ''}
+        ${journal.notes ? `<div><p class="text-sm font-medium text-gray-700">Catatan:</p><p class="text-sm text-gray-600">${journal.notes}</p></div>` : ''}
       </div>
     </div>
   `).join('');
 }
 
-// === PRESENSI FUNCTIONS ===
-
-async function saveAttendanceData() {
-  try {
-    console.log('Preparing attendance data...');
-
-    const attendanceClass = document.getElementById('attendanceClass');
-    const attendanceDate = document.getElementById('attendanceDate');
-    const attendanceSubject = document.getElementById('attendanceSubject');
-    
-    const selectedClass = attendanceClass?.value;
-    const date = attendanceDate?.value;
-    const subject = attendanceSubject?.value || 'Tidak ada mata pelajaran';
-
-    if (!selectedClass || !date) {
-      alert('Mohon lengkapi kelas dan tanggal');
-      return;
-    }
-
-    // Kumpulkan data presensi
-    const students = await this.getStudents();
-    const classStudents = students.filter(student => student.class === selectedClass);
-    
-    const attendanceRecords = [];
-    
-    classStudents.forEach(student => {
-      const presentRadio = document.querySelector(`input[name="attendance_${student.id}"][value="present"]`);
-      const absentRadio = document.querySelector(`input[name="attendance_${student.id}"][value="absent"]`);
-      const excusedRadio = document.querySelector(`input[name="attendance_${student.id}"][value="excused"]`);
-      const sickRadio = document.querySelector(`input[name="attendance_${student.id}"][value="sick"]`);
-      
-      let status = '';
-      if (presentRadio?.checked) status = 'present';
-      else if (absentRadio?.checked) status = 'absent';
-      else if (excusedRadio?.checked) status = 'excused';
-      else if (sickRadio?.checked) status = 'sick';
-      
-      if (status) {
-        attendanceRecords.push({
-          student_id: student.id,
-          student_name: student.name,
-          status: status
-        });
-      }
-    });
-
-    if (attendanceRecords.length === 0) {
-      alert('Belum ada siswa yang dipresensi');
-      return;
-    }
-
-    console.log('Saving attendance:', attendanceRecords.length, 'records');
-
-    const attendanceData = {
-      class_name: selectedClass,
-      date: date,
-      subject: subject,
-      teacher_name: 'Guru', // Bisa diganti dengan nama guru aktual
-      records: attendanceRecords
-    };
-
-    const saved = await this.saveAttendance(attendanceData);
-    console.log('Attendance saved:', saved);
-
-    // Refresh data
-    await this.loadAllData();
-    alert('Presensi berhasil disimpan!');
-    
-    // Reset form
-    if (attendanceClass) attendanceClass.value = '';
-    if (attendanceSubject) attendanceSubject.value = '';
-    
-  } catch (error) {
-    console.error('Error saving attendance:', error);
-    alert('Error: ' + error.message);
-  }
-}
-
-// === JURNAL FUNCTIONS ===
-
-async function saveJournalData() {
-  try {
-    const journalDate = document.getElementById('journalDate');
-    const journalClass = document.getElementById('journalClass');
-    const journalSubject = document.getElementById('journalSubject');
-    const journalActivity = document.getElementById('journalActivity');
-    const journalNotes = document.getElementById('journalNotes');
-    
-    const date = journalDate?.value;
-    const className = journalClass?.value;
-    const subject = journalSubject?.value;
-    const activity = journalActivity?.value;
-    const notes = journalNotes?.value;
-
-    if (!date || !className || !subject || !activity) {
-      alert('Mohon lengkapi semua field yang wajib');
-      return;
-    }
-
-    const journalData = {
-      date: date,
-      class_name: className,
-      subject: subject,
-      activity: activity,
-      notes: notes,
-      teacher_name: 'Guru' // Bisa diganti dengan nama guru aktual
-    };
-
-    const saved = await this.saveJournal(journalData);
-    console.log('Journal saved:', saved);
-
-    // Refresh data
-    await this.loadAllData();
-    alert('Jurnal berhasil disimpan!');
-    
-  } catch (error) {
-    console.error('Error saving journal:', error);
-    alert('Error: ' + error.message);
-  }
-}
-
-// === TEACHER PROFILE FUNCTIONS ===
-
-async function loadTeacherProfile() {
-  try {
-    console.log('Loading teacher profile...');
-    
-    const teacher = await this.getTeacherProfile();
-    
-    if (teacher) {
-      // Update state lokal
-      window.appState = window.appState || {};
-      window.appState.teacherProfile = {
-        name: teacher.name || 'Guru',
-        subject: teacher.subject || 'Mata Pelajaran',
-        nip: teacher.nip || '',
-        email: teacher.email || '',
-        phone: teacher.phone || '',
-        photo: teacher.photo_url || null
-      };
-      
-      // Update UI
-      this.updateTeacherProfileDisplay(teacher);
-      console.log('Teacher profile loaded:', teacher.name);
-    }
-    
-  } catch (error) {
-    console.error('Error loading teacher profile:', error);
-  }
-}
-
-async function saveTeacherProfile(profileData) {
-  try {
-    console.log('Saving teacher profile:', profileData);
-    
-    if (!profileData.name || !profileData.subject) {
-      alert('Mohon lengkapi nama dan mata pelajaran');
-      return;
-    }
-
-    const saved = await this.saveTeacherProfile(profileData);
-    console.log('Teacher profile saved:', saved);
-    
-    // Update UI
-    this.updateTeacherProfileDisplay(saved);
-    alert('Profil guru berhasil disimpan!');
-    
-  } catch (error) {
-    console.error('Error saving teacher profile:', error);
-    alert('Error: ' + error.message);
-  }
-}
-
 function updateTeacherProfileDisplay(teacher) {
-  // Update nama guru di sidebar
   const teacherName = document.getElementById('teacherName');
   const teacherSubject = document.getElementById('teacherSubject');
-  const teacherNIP = document.getElementById('teacherNIP');
-  const teacherEmail = document.getElementById('teacherEmail');
-  const teacherPhone = document.getElementById('teacherPhone');
   const teacherPhoto = document.getElementById('teacherPhoto');
   const teacherIcon = document.getElementById('teacherIcon');
+  const mobileTeacherPhoto = document.getElementById('mobileTeacherPhoto');
+  const mobileTeacherIcon = document.getElementById('mobileTeacherIcon');
 
   if (teacherName) teacherName.textContent = teacher.name || 'Guru';
   if (teacherSubject) teacherSubject.textContent = teacher.subject || 'Mata Pelajaran';
-  if (teacherNIP) teacherNIP.textContent = teacher.nip || '-';
-  if (teacherEmail) teacherEmail.textContent = teacher.email || '-';
-  if (teacherPhone) teacherPhone.textContent = teacher.phone || '-';
-  
-  // Update foto jika ada
-  if (teacher.photo && teacherPhoto) {
-    teacherPhoto.src = teacher.photo;
-    teacherPhoto.classList.remove('hidden');
+
+  if (teacher.photo_url) {
+    if (teacherPhoto) { teacherPhoto.src = teacher.photo_url; teacherPhoto.classList.remove('hidden'); }
     if (teacherIcon) teacherIcon.classList.add('hidden');
-  } else if (teacherIcon) {
-    teacherIcon.classList.remove('hidden');
+    if (mobileTeacherPhoto) { mobileTeacherPhoto.src = teacher.photo_url; mobileTeacherPhoto.classList.remove('hidden'); }
+    if (mobileTeacherIcon) mobileTeacherIcon.classList.add('hidden');
+  } else {
     if (teacherPhoto) teacherPhoto.classList.add('hidden');
+    if (teacherIcon) teacherIcon.classList.remove('hidden');
+    if (mobileTeacherPhoto) mobileTeacherPhoto.classList.add('hidden');
+    if (mobileTeacherIcon) mobileTeacherIcon.classList.remove('hidden');
   }
 }
 
-// === EXPORT FUNCTIONS ===
+// === CORE APP ===
+class App {
+  constructor() {
+    this.service = new SupabaseService();
+    this.students = [];
+    this.attendance = [];
+    this.journals = [];
+    this.teacher = null;
+  }
 
-function exportToPDF() {
-  window.open('data:text/plain;charset=utf-8,' + encodeURIComponent('PDF content here'));
-}
-
-function exportToExcel() {
-  const csvContent = "data:text/csv;charset=utf-8," 
-    + "Tanggal,Kelas,Mapel,Hadir,Alpha,Izin,Sakit,Total\n"
-    + "2024-01-20,X-1,Matematika,25,2,1,0,28\n";
-  
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `rekap-presensi-${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function printReport() {
-  window.print();
-}
-
-function exportJournalPDF() {
-  const content = "Rekap Jurnal Guru\nTanggal: " + new Date().toLocaleDateString('id-ID');
-  const element = document.createElement('a');
-  const file = new Blob([content], {type: 'text/plain'});
-  element.href = URL.createObjectURL(file);
-  element.download = `rekap-jurnal-${new Date().toISOString().split('T')[0]}.txt`;
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
-}
-
-// === CORE APP FUNCTIONS ===
-
-async function loadAllData() {
-  try {
-    console.log('Loading data from Supabase...');
-    
-    // Load semua data sekaligus
-    const [students, attendance, journals, teacher] = await Promise.all([
-      this.getStudents(),
-      this.getAttendance(),
-      this.getJournals(),
-      this.getTeacherProfile()
-    ]);
-
-    console.log('Students loaded:', students.length);
-    console.log('Attendance loaded:', attendance.length);
-    console.log('Journals loaded:', journals.length);
-    console.log('Teacher profile:', teacher?.name || 'Not found');
-
-    // Update semua UI
-    this.updateStudentsTable(students);
-    this.updateAttendanceDisplay(attendance);
-    this.updateJournalDisplay(journals);
-    
-    // Update teacher profile jika ada
-    if (teacher) {
-      this.updateTeacherProfileDisplay(teacher);
+  async init() {
+    try {
+      await this.loadAllData();
+      this.setupEventListeners();
+      this.showView('dashboard');
+      this.hideSplashScreen();
+    } catch (error) {
+      console.error('Init error:', error);
+      alert('Gagal memuat data: ' + error.message);
     }
-    
-  } catch (error) {
-    console.error('Error loading data:', error);
-    alert('Error: ' + error.message);
   }
-}
 
-// === INITIALIZATION ===
+  async loadAllData() {
+    const [students, attendance, journals, teacher] = await Promise.all([
+      this.service.getStudents(),
+      this.service.getAttendance(),
+      this.service.getJournals(),
+      this.service.getTeacherProfile()
+    ]);
+    this.students = students;
+    this.attendance = attendance;
+    this.journals = journals;
+    this.teacher = teacher || { name: 'Guru', subject: 'Mata Pelajaran' };
+    updateStudentsTable(students);
+    updateAttendanceDisplay(attendance);
+    updateJournalDisplay(journals);
+    updateTeacherProfileDisplay(this.teacher);
+  }
 
-document.addEventListener('DOMContentLoaded', async function() {
-  try {
-    console.log('[APP] Initializing application');
-    
-    // Tunggu Supabase siap
-    if (typeof window.supabase === 'undefined') {
-      console.error('Supabase library not loaded');
-      alert('Error: Supabase library tidak ditemukan. Pastikan koneksi internet aktif.');
+  showView(view) {
+    document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById(view + 'View')?.classList.remove('hidden');
+  }
+
+  showTeacherProfileModal() {
+    document.getElementById('teacherProfileModal')?.classList.remove('hidden');
+  }
+
+  hideTeacherProfileModal() {
+    document.getElementById('teacherProfileModal')?.classList.add('hidden');
+  }
+
+  async saveStudent() {
+    // Implementasi sesuai form
+    alert('Fitur save student akan diimplementasi');
+  }
+
+  async editStudent(id) {
+    alert('Edit student: ' + id);
+  }
+
+  async deleteStudent(id) {
+    if (!confirm('Hapus siswa ini?')) return;
+    try {
+      await this.service.deleteStudent(id);
+      await this.loadAllData();
+      alert('Siswa dihapus!');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  }
+
+  async saveAttendanceData() {
+    const class_name = document.getElementById('attendanceClass')?.value;
+    const date = document.getElementById('attendanceDate')?.value;
+    const subject = document.getElementById('attendanceSubject')?.value || 'Tidak ada mata pelajaran';
+
+    if (!class_name || !date) {
+      alert('Lengkapi kelas dan tanggal');
       return;
     }
-    
-    // Buat instance service
-    window.supabaseService = new SupabaseService();
-    window.app = {
-      loadAllData: loadAllData.bind(window.supabaseService),
-      saveStudentData: saveStudentData.bind(window.supabaseService),
-      saveAttendanceData: saveAttendanceData.bind(window.supabaseService),
-      saveJournalData: saveJournalData.bind(window.supabaseService),
-      loadTeacherProfile: loadTeacherProfile.bind(window.supabaseService),
-      saveTeacherProfile: saveTeacherProfile.bind(window.supabaseService),
-      updateStudentsTable: updateStudentsTable.bind(window.supabaseService),
-      updateAttendanceDisplay: updateAttendanceDisplay.bind(window.supabaseService),
-      updateJournalDisplay: updateJournalDisplay.bind(window.supabaseService),
-      updateTeacherProfileDisplay: updateTeacherProfileDisplay.bind(window.supabaseService),
-      exportToPDF: exportToPDF,
-      exportToExcel: exportToExcel,
-      printReport: printReport,
-      exportJournalPDF: exportJournalPDF
-    };
-    
-    // Setup event listeners
-    console.log('[APP] Setting up event listeners');
-    
-    // Jalankan load data
-    await window.app.loadAllData();
-    
-    console.log('[APP] Application initialized successfully');
-    
-  } catch (error) {
-    console.error('[APP] Failed to initialize:', error);
-    alert('Error saat menginisialisasi aplikasi: ' + error.message);
+
+    const classStudents = this.students.filter(s => s.class === class_name);
+    const records = [];
+    classStudents.forEach(student => {
+      const status = document.querySelector(`input[name="attendance_${student.id}"]:checked`)?.value || 'absent';
+      records.push({ student_id: student.id, student_name: student.name, status });
+    });
+
+    try {
+      await this.service.saveAttendance({ class_name, date, subject, records });
+      await this.loadAllData();
+      alert('Presensi disimpan!');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
   }
+
+  async saveJournal() {
+    const date = document.getElementById('journalDate')?.value;
+    const class_name = document.getElementById('journalClass')?.value;
+    const subject = document.getElementById('journalSubject')?.value;
+    const activity = document.getElementById('journalActivity')?.value;
+    const notes = document.getElementById('journalNotes')?.value;
+
+    if (!date || !class_name || !subject || !activity) {
+      alert('Lengkapi semua field');
+      return;
+    }
+
+    try {
+      await this.service.saveJournal({ date, class_name, subject, activity, notes });
+      await this.loadAllData();
+      alert('Jurnal disimpan!');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  }
+
+  async deleteJournal(id) {
+    if (!confirm('Hapus jurnal ini?')) return;
+    try {
+      await this.service.deleteJournal(id);
+      await this.loadAllData();
+      alert('Jurnal dihapus!');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  }
+
+  setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showView(e.currentTarget.getAttribute('href').substring(1));
+      });
+    });
+    document.querySelectorAll('.nav-mobile-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.showView(btn.getAttribute('data-view')));
+    });
+
+    // Presensi
+    document.getElementById('saveAttendance')?.addEventListener('click', () => this.saveAttendanceData());
+    document.getElementById('attendanceClass')?.addEventListener('change', () => this.loadStudentsForAttendance());
+
+    // Jurnal
+    document.getElementById('addJournalBtn')?.addEventListener('click', () => {
+      document.getElementById('journalForm')?.classList.remove('hidden');
+    });
+    document.getElementById('saveJournal')?.addEventListener('click', () => this.saveJournal());
+    document.getElementById('cancelJournal')?.addEventListener('click', () => {
+      document.getElementById('journalForm')?.classList.add('hidden');
+    });
+
+    // Profil
+    document.getElementById('teacherProfile')?.addEventListener('click', () => this.showTeacherProfileModal());
+    document.getElementById('profileBtn')?.addEventListener('click', () => this.showTeacherProfileModal());
+    document.getElementById('closeTeacherModal')?.addEventListener('click', () => this.hideTeacherProfileModal());
+    document.getElementById('cancelTeacherProfile')?.addEventListener('click', () => this.hideTeacherProfileModal());
+  }
+
+  loadStudentsForAttendance() {
+    const class_name = document.getElementById('attendanceClass')?.value;
+    const container = document.getElementById('attendanceStudentsList');
+    if (!class_name || !container) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-list empty-state-icon"></i><p>Pilih kelas</p></div>';
+      return;
+    }
+    const students = this.students.filter(s => s.class === class_name);
+    container.innerHTML = students.map(s => `
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div><span class="font-medium">${s.name}</span></div>
+        <div class="flex space-x-2">
+          <label><input type="radio" name="attendance_${s.id}" value="present"> Hadir</label>
+          <label><input type="radio" name="attendance_${s.id}" value="absent"> Tidak</label>
+          <label><input type="radio" name="attendance_${s.id}" value="excused"> Izin</label>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  hideSplashScreen() {
+    document.getElementById('splashScreen')?.classList.add('hidden');
+  }
+}
+
+// === INISIALISASI ===
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new App();
+  window.app.init();
 });
