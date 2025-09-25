@@ -892,14 +892,16 @@
             <span id="toastMessage">Berhasil!</span>
         </div>
     </div>
-    <!-- Minimal Supabase Init (required for app-complete.js) -->
+    <!-- Service Worker -->
     <script>
-        const supabase = window.supabase.createClient(
-            'https://lleviwszkjhoyqvpiapu.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsZXZpd3N6a2pob3lxdnBpYXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDc3MjcsImV4cCI6MjA3NDA4MzcyN30.YP6WYMiwJch6lhk2AiLUtUwyGZ5soO382MjqKD4jwg4'
-        );
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .catch(console.error);
+            });
+        }
     </script>
-    <!-- Setup Navigation & Basic Events -->
+    <!-- Setup Basic Event Listeners -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Navigation
@@ -924,7 +926,7 @@
                     if (window.app && window.app.showView) window.app.showView(quickViews[i]);
                 });
             });
-            // Teacher Profile
+            // Profil Guru
             const profileTriggers = [document.getElementById('teacherProfile'), document.getElementById('profileBtn')];
             profileTriggers.forEach(el => {
                 if (el) el.addEventListener('click', () => {
@@ -938,15 +940,6 @@
                 if (el) el.value = today;
             });
         });
-    </script>
-    <!-- Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .catch(console.error);
-            });
-        }
     </script>
     <!-- Load app-complete.js LAST -->
     <script src="app-complete.js"></script>
