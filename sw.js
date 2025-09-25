@@ -1,4 +1,4 @@
-// sw.js — Versi yang benar untuk GitHub Pages
+// sw.js — Versi yang benar untuk GitHub Pages dengan subfolder
 const CACHE_NAME = 'absensi-siswa-v1';
 const urlsToCache = [
   '/absensi-siswa/',
@@ -12,10 +12,11 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-      .catch((err) => {
-        console.error('Gagal meng-cache:', err);
-        // Jangan biarkan install gagal hanya karena satu file
+      .then((cache) => {
+        return cache.addAll(urlsToCache).catch((err) => {
+          console.warn('Gagal meng-cache beberapa file:', err);
+          // Lanjutkan install meski ada error minor
+        });
       })
   );
 });
@@ -23,6 +24,8 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
-      .then((response) => response || fetch(event.request))
+      .then((response) => {
+        return response || fetch(event.request);
+      })
   );
 });
